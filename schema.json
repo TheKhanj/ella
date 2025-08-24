@@ -1,0 +1,489 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "entry": {
+      "type": "string",
+      "description": "The initial service to launch at system startup."
+    },
+    "defaults": {
+      "$ref": "#/definitions/Defaults"
+    },
+    "relations": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Relation"
+      },
+      "propertyNames": {
+        "$ref": "#/definitions/CustomRelationName"
+      }
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Service"
+      }
+    }
+  },
+  "definitions": {
+    "Defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "process": {
+          "$ref": "#/definitions/ProcessDefaults"
+        }
+      },
+      "required": [
+        "process"
+      ]
+    },
+    "ProcessDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "group": {
+          "$ref": "#/definitions/Group"
+        },
+        "cwd": {
+          "$ref": "#/definitions/Cwd"
+        },
+        "stdout": {
+          "$ref": "#/definitions/Stdout"
+        },
+        "stderr": {
+          "$ref": "#/definitions/Stderr"
+        },
+        "stdin": {
+          "$ref": "#/definitions/Stdin"
+        },
+        "shell": {
+          "type": "string",
+          "pattern": "^/.*",
+          "description": "Binary used for shell-scoped executions."
+        },
+        "environments": {
+          "$ref": "#/definitions/Environments"
+        },
+        "dependency": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "relation": {
+              "$ref": "#/definitions/RelationName"
+            }
+          },
+          "required": [
+            "relation"
+          ]
+        }
+      },
+      "required": [
+        "user",
+        "group",
+        "cwd",
+        "stdout",
+        "stderr",
+        "stdin",
+        "shell",
+        "environments",
+        "dependency"
+      ]
+    },
+    "Service": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/GroupService"
+        },
+        {
+          "$ref": "#/definitions/ProcessService"
+        }
+      ]
+    },
+    "GroupService": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "group"
+          ]
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Dependency"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "dependencies"
+      ]
+    },
+    "ProcessService": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exec": {
+          "$ref": "#/definitions/Exec"
+        },
+        "reload": {
+          "$ref": "#/definitions/Exec"
+        },
+        "cwd": {
+          "$ref": "#/definitions/Cwd"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "group": {
+          "$ref": "#/definitions/Group"
+        },
+        "stdout": {
+          "$ref": "#/definitions/Stdout"
+        },
+        "stderr": {
+          "$ref": "#/definitions/Stderr"
+        },
+        "stdin": {
+          "$ref": "#/definitions/Stdin"
+        },
+        "shell": {
+          "type": "string",
+          "pattern": "^/.*",
+          "description": "Binary used for shell-scoped executions."
+        },
+        "watchdog": {
+          "$ref": "#/definitions/Watchdog"
+        },
+        "environments": {
+          "$ref": "#/definitions/Environments"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Dependency"
+          }
+        }
+      },
+      "required": [
+        "exec",
+        "shell",
+        "reload",
+        "monitor",
+        "cwd",
+        "user",
+        "group",
+        "stdout",
+        "stderr",
+        "stdin",
+        "watchdog",
+        "environments",
+        "dependencies"
+      ]
+    },
+    "Dependency": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Name of the dependency."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name of the dependency."
+            },
+            "relation": {
+              "$ref": "#/definitions/RelationName"
+            }
+          },
+          "required": [
+            "name",
+            "relation"
+          ]
+        }
+      ]
+    },
+    "Relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "child": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Actions to do on child's state changes.",
+              "properties": {
+                "inactive": {
+                  "$ref": "#/definitions/OnParentAction"
+                },
+                "active": {
+                  "$ref": "#/definitions/OnParentAction"
+                },
+                "failed": {
+                  "$ref": "#/definitions/OnParentAction"
+                },
+                "activating": {
+                  "$ref": "#/definitions/OnParentAction"
+                },
+                "deactivating": {
+                  "$ref": "#/definitions/OnParentAction"
+                },
+                "reloading": {
+                  "$ref": "#/definitions/OnParentAction"
+                }
+              },
+              "required": [
+                "inactive",
+                "active",
+                "failed",
+                "activating",
+                "deactivating",
+                "reloading"
+              ]
+            },
+            "parent": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Actions to do on parent's state changes.",
+              "properties": {
+                "inactive": {
+                  "$ref": "#/definitions/OnChildAction"
+                },
+                "active": {
+                  "$ref": "#/definitions/OnChildAction"
+                },
+                "failed": {
+                  "$ref": "#/definitions/OnChildAction"
+                },
+                "activating": {
+                  "$ref": "#/definitions/OnChildAction"
+                },
+                "deactivating": {
+                  "$ref": "#/definitions/OnChildAction"
+                },
+                "reloading": {
+                  "$ref": "#/definitions/OnChildAction"
+                }
+              },
+              "required": [
+                "inactive",
+                "active",
+                "failed",
+                "activating",
+                "deactivating",
+                "reloading"
+              ]
+            }
+          },
+          "required": [
+            "child",
+            "parent"
+          ]
+        }
+      },
+      "required": [
+        "on"
+      ]
+    },
+    "Action": {
+      "type": "string",
+      "enum": [
+        "start",
+        "stop",
+        "fail",
+        "restart",
+        "reload"
+      ]
+    },
+    "OnParentAction": {
+      "type": "string",
+      "enum": [
+        "start parent",
+        "stop parent",
+        "fail parent",
+        "restart parent",
+        "reload parent"
+      ]
+    },
+    "OnChildAction": {
+      "type": "string",
+      "enum": [
+        "start child",
+        "stop child",
+        "fail child",
+        "restart child",
+        "reload child"
+      ]
+    },
+    "RelationName": {
+      "description": "Type of the relation between parent and child process.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/StaticRelationName"
+        },
+        {
+          "$ref": "#/definitions/CustomRelationName"
+        }
+      ]
+    },
+    "StaticRelationName": {
+      "type": "string",
+      "enum": [
+        "!two-way"
+      ],
+      "pattern": "^\\!.*",
+      "description": "Hard-coded relations."
+    },
+    "CustomRelationName": {
+      "type": "string",
+      "pattern": "^(?!\\!).*",
+      "description": "User defined relations."
+    },
+    "Cwd": {
+      "type": "string",
+      "description": "Working directory of the process."
+    },
+    "User": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "User to run the process as.",
+          "pattern": "^[a-z_][a-z0-9_-]*$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "description": "UID to run the process with."
+        }
+      ]
+    },
+    "Group": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Group to run the process as.",
+          "pattern": "^[a-z_][a-z0-9_-]*$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "description": "GID to run the process with."
+        }
+      ]
+    },
+    "Stdout": {
+      "type": "boolean",
+      "description": "Whether to show stdout or not."
+    },
+    "Stderr": {
+      "type": "boolean",
+      "description": "Whether to show stdout or not."
+    },
+    "Stdin": {
+      "oneOf": [
+        {
+          "type": "boolean",
+          "enum": [
+            false
+          ],
+          "description": "No stdin."
+        },
+        {
+          "type": "string",
+          "pattern": "^[\\./].*",
+          "description": "File to use for stdin."
+        },
+        {
+          "type": "string",
+          "pattern": "^\\!.*",
+          "description": "Command run; stdout is passed to stdin."
+        },
+        {
+          "type": "string",
+          "pattern": "^\\$.*",
+          "description": "Content to run in the shell; stdout is passed to stdin."
+        }
+      ]
+    },
+    "Watchdog": {
+      "description": "Watchdog strategy to use.",
+      "$ref": "#/definitions/RestartWatchdog"
+    },
+    "RestartWatchdog": {
+      "type": "object",
+      "description": "Always restart strategy.",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "restart"
+          ]
+        },
+        "interval": {
+          "$ref": "#/definitions/Duration"
+        }
+      },
+      "required": [
+        "strategy",
+        "interval"
+      ]
+    },
+    "Environments": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "!inherit"
+                ],
+                "description": "Use the value from the same key in the environment variables of the main process."
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!\\!).*$",
+                "description": "Literal value to pass in."
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!\\!inherit$)!",
+                "description": "Remove the first '!' and treat the rest as a literal value. To pass '!inherit' literally, use '!!inherit'; for '!!inherit', use '!!!inherit', and so on."
+              }
+            ]
+          },
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          }
+        }
+      ]
+    },
+    "Duration": {
+      "type": "string",
+      "description": "Time duration in golang's parsing format",
+      "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"
+    }
+  },
+  "required": [
+    "entry",
+    "defaults",
+    "relations",
+    "services"
+  ]
+}
