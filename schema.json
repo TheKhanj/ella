@@ -3,6 +3,9 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "entry": {
       "type": "string",
       "description": "The initial service to launch at system startup."
@@ -63,7 +66,7 @@
         },
         "shell": {
           "type": "string",
-          "pattern": "^/.*",
+          "pattern": "^/.*$",
           "description": "Binary used for shell-scoped executions."
         },
         "environments": {
@@ -130,11 +133,20 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "process"
+          ]
+        },
         "exec": {
           "$ref": "#/definitions/Exec"
         },
         "reload": {
           "$ref": "#/definitions/Exec"
+        },
+        "monitor": {
+          "$ref": "#/definitions/Monitor"
         },
         "cwd": {
           "$ref": "#/definitions/Cwd"
@@ -156,7 +168,7 @@
         },
         "shell": {
           "type": "string",
-          "pattern": "^/.*",
+          "pattern": "^/.*$",
           "description": "Binary used for shell-scoped executions."
         },
         "watchdog": {
@@ -173,6 +185,7 @@
         }
       },
       "required": [
+        "type",
         "exec",
         "shell",
         "reload",
@@ -186,6 +199,40 @@
         "watchdog",
         "environments",
         "dependencies"
+      ]
+    },
+    "Exec": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[\\./].*$",
+          "description": "Binary command with absolute/relative path and optional arguments."
+        },
+        {
+          "type": "string",
+          "pattern": "^\\$.*$",
+          "description": "Content to run in the shell."
+        }
+      ]
+    },
+    "Monitor": {
+      "description": "Strategy to use for monitoring status of the service.",
+      "$ref": "#/definitions/SimpleMonitor"
+    },
+    "SimpleMonitor": {
+      "type": "object",
+      "description": "Simple monitor starts the process immediately; process becomes inactive on normal exit, fails on non-zero exit.",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "simple"
+          ]
+        }
+      },
+      "required": [
+        "strategy"
       ]
     },
     "Dependency": {
@@ -309,23 +356,37 @@
       ]
     },
     "OnParentAction": {
-      "type": "string",
-      "enum": [
-        "start parent",
-        "stop parent",
-        "fail parent",
-        "restart parent",
-        "reload parent"
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "start parent",
+            "stop parent",
+            "fail parent",
+            "restart parent",
+            "reload parent"
+          ]
+        }
       ]
     },
     "OnChildAction": {
-      "type": "string",
-      "enum": [
-        "start child",
-        "stop child",
-        "fail child",
-        "restart child",
-        "reload child"
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "start child",
+            "stop child",
+            "fail child",
+            "restart child",
+            "reload child"
+          ]
+        }
       ]
     },
     "RelationName": {
@@ -344,12 +405,12 @@
       "enum": [
         "!two-way"
       ],
-      "pattern": "^\\!.*",
+      "pattern": "^\\!.*$",
       "description": "Hard-coded relations."
     },
     "CustomRelationName": {
       "type": "string",
-      "pattern": "^(?!\\!).*",
+      "pattern": "^(?!\\!).*$",
       "description": "User defined relations."
     },
     "Cwd": {
@@ -364,6 +425,13 @@
           "pattern": "^[a-z_][a-z0-9_-]*$"
         },
         {
+          "type": "string",
+          "enum": [
+            "!inherit"
+          ],
+          "description": "Use the same user as the main process."
+        },
+        {
           "type": "integer",
           "minimum": 0,
           "description": "UID to run the process with."
@@ -376,6 +444,13 @@
           "type": "string",
           "description": "Group to run the process as.",
           "pattern": "^[a-z_][a-z0-9_-]*$"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "!inherit"
+          ],
+          "description": "Use the same group as the main process."
         },
         {
           "type": "integer",
@@ -395,25 +470,22 @@
     "Stdin": {
       "oneOf": [
         {
-          "type": "boolean",
-          "enum": [
-            false
-          ],
+          "type": "null",
           "description": "No stdin."
         },
         {
           "type": "string",
-          "pattern": "^[\\./].*",
+          "pattern": "^[\\./].*$",
           "description": "File to use for stdin."
         },
         {
           "type": "string",
-          "pattern": "^\\!.*",
+          "pattern": "^\\!.*$",
           "description": "Command run; stdout is passed to stdin."
         },
         {
           "type": "string",
-          "pattern": "^\\$.*",
+          "pattern": "^\\$.*$",
           "description": "Content to run in the shell; stdout is passed to stdin."
         }
       ]
@@ -445,6 +517,12 @@
     "Environments": {
       "oneOf": [
         {
+          "type": "string",
+          "enum": [
+            "!inherit"
+          ]
+        },
+        {
           "type": "object",
           "additionalProperties": {
             "oneOf": [
@@ -462,7 +540,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^(?!\\!inherit$)!",
+                "pattern": "^(?!\\!inherit$)!.*$",
                 "description": "Remove the first '!' and treat the rest as a literal value. To pass '!inherit' literally, use '!!inherit'; for '!!inherit', use '!!!inherit', and so on."
               }
             ]
@@ -476,7 +554,7 @@
     },
     "Duration": {
       "type": "string",
-      "description": "Time duration in golang's parsing format",
+      "description": "Time duration in golang's parsing format.",
       "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"
     }
   },
