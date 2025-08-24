@@ -1,0 +1,31 @@
+digraph systemd_states {
+	rankdir=LR;
+	node [shape=circle, style=filled, fillcolor=lightblue];
+
+	// States
+	inactive     [label="inactive"];
+	active       [label="active"];
+	failed       [label="failed"];
+	activating   [label="activating"];
+	deactivating [label="deactivating"];
+	reloading    [label="reloading"];
+
+	// Start transition
+	inactive     -> activating   [label="start"];
+	failed       -> activating   [label="start"];
+	activating   -> active       [label="start"];
+
+	// Stop transition
+	active       -> deactivating [label="stop"];
+	active       -> failed       [label="fail"];
+	deactivating -> inactive     [label="stop"];
+	activating   -> inactive     [label="stop"];
+	activating   -> failed       [label="fail"];
+
+	// Fail transition
+	inactive     -> failed       [label="fail"];
+
+	// Reload transition
+	active       -> reloading    [label="reload"];
+	reloading    -> active       [label="reload"];
+}
