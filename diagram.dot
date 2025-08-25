@@ -13,13 +13,13 @@ digraph systemd_states {
 	// Start transition
 	inactive     -> activating   [label="start"];
 	failed       -> activating   [label="start"];
-	activating   -> active       [label="start"];
+	activating   -> active       [label="start done"];
 
 	// Stop transition
 	active       -> deactivating [label="stop"];
 	active       -> failed       [label="fail"];
-	deactivating -> inactive     [label="stop"];
-	activating   -> inactive     [label="stop"];
+	deactivating -> inactive     [label="stop done"];
+	activating   -> deactivating [label="stop"];
 	activating   -> failed       [label="fail"];
 
 	// Fail transition
@@ -27,5 +27,5 @@ digraph systemd_states {
 
 	// Reload transition
 	active       -> reloading    [label="reload"];
-	reloading    -> active       [label="reload"];
+	reloading    -> active       [label="reload done"];
 }
