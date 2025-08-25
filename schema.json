@@ -10,6 +10,9 @@
       "type": "string",
       "description": "The initial service to launch at system startup."
     },
+    "includes": {
+      "$ref": "#/definitions/IncludePaths"
+    },
     "defaults": {
       "$ref": "#/definitions/Defaults"
     },
@@ -30,6 +33,31 @@
     }
   },
   "definitions": {
+    "Include": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "includes": {
+          "$ref": "#/definitions/IncludePaths"
+        },
+        "services": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Service"
+          }
+        }
+      },
+      "required": [
+        "services"
+      ]
+    },
+    "IncludePaths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "Glob pattern to match files to include."
+      }
+    },
     "Defaults": {
       "type": "object",
       "additionalProperties": false,
@@ -560,6 +588,7 @@
   },
   "required": [
     "entry",
+    "includes",
     "defaults",
     "relations",
     "services"
