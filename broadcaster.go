@@ -7,44 +7,42 @@ import (
 
 type Broadcaster struct {
 	mu      sync.RWMutex
-	writers map[io.Writer]chan error
+	writers map[io.WriteCloser]struct{}
 }
 
 func NewBroadcaster() *Broadcaster {
 	return &Broadcaster{
-		writers: make(map[io.Writer]chan error),
+		writers: make(map[io.WriteCloser]struct{}),
 	}
 }
 
-func (this *Broadcaster) Add(w io.Writer) <-chan error {
-	errs := make(chan error)
+func (this *Broadcaster) Add(w io.WriteCloser) {
 	this.mu.Lock()
-	this.writers[w] = errs
+	this.writers[w] = struct{}{}
 	this.mu.Unlock()
-
-	return errs
 }
 
-func (this *Broadcaster) Remove(w io.Writer) {
+func (this *Broadcaster) Remove(w io.WriteCloser) {
 	this.mu.Lock()
-	errs := this.writers[w]
-	close(errs)
+	w.Close()
 	delete(this.writers, w)
 	this.mu.Unlock()
 }
 
 func (this *Broadcaster) Write(p []byte) (n int, err error) {
 	this.mu.RLock()
-	defer this.mu.RUnlock()
-
+	removing := make([]io.WriteCloser, 0)
 	l := len(p)
-	for w, errs := range this.writers {
+	for w := range this.writers {
 		n, e := w.Write(p)
-		if e != nil {
-			errs <- err
-		} else if n < l {
-			errs <- io.ErrShortWrite
+		if e != nil || n < l {
+			removing = append(removing, w)
 		}
+	}
+	this.mu.RUnlock()
+
+	for _, w := range removing {
+		this.Remove(w)
 	}
 
 	return l, nil
@@ -52,5 +50,12 @@ func (this *Broadcaster) Write(p []byte) (n int, err error) {
 
 func (this *Broadcaster) Run(r io.Reader) error {
 	_, err := io.Copy(this, r)
+	this.removeAll()
 	return err
+}
+
+func (this *Broadcaster) removeAll() {
+	for w := range this.writers {
+		this.Remove(w)
+	}
 }
