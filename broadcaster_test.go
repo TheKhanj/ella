@@ -18,8 +18,8 @@ func (this *BroadcasterTest) Run() {
 
 	var wg sync.WaitGroup
 	// 1: boardcaster run
-	// 2,3,4,...,100: check pipe
-	pipesCnt := 3
+	// 2,3,4,...: check pipe
+	pipesCnt := 10000
 	wg.Add(1 + pipesCnt)
 	for i := 0; i < pipesCnt; i++ {
 		r, w := io.Pipe()

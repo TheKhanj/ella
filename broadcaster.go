@@ -24,8 +24,7 @@ func (this *Broadcaster) Add(w io.WriteCloser) {
 
 func (this *Broadcaster) Remove(w io.WriteCloser) {
 	this.mu.Lock()
-	w.Close()
-	delete(this.writers, w)
+	this.remove(w)
 	this.mu.Unlock()
 }
 
@@ -55,7 +54,14 @@ func (this *Broadcaster) Run(r io.Reader) error {
 }
 
 func (this *Broadcaster) removeAll() {
+	this.mu.Lock()
+	defer this.mu.Unlock()
 	for w := range this.writers {
-		this.Remove(w)
+		this.remove(w)
 	}
+}
+
+func (this *Broadcaster) remove(w io.WriteCloser) {
+	w.Close()
+	delete(this.writers, w)
 }
