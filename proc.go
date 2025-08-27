@@ -21,7 +21,8 @@ const (
 	ProcStateStarting
 	ProcStateStarted
 	ProcStateStopped
-	ProcStateDone
+	ProcStateWaitDone
+	ProcStateBusShuttedDown
 )
 
 type ProcTopic int
@@ -56,6 +57,8 @@ type Proc struct {
 }
 
 func (this *Proc) Start(ctx context.Context) error {
+	defer this.shutdown()
+
 	err := this.setState(ProcStateStarting)
 	if err != nil {
 		return err
@@ -127,17 +130,30 @@ func (this *Proc) GetState() ProcState {
 
 // Subscribe to process's state changes
 func (this *Proc) Sub() chan ProcState {
+	if !this.checkBus() {
+		ch := make(chan ProcState)
+		close(ch)
+
+		return ch
+	}
+
 	return this.bus.Sub(procTopic)
 }
 
 // Unsubscribe from process's state changes
 func (this *Proc) Unsub(ch chan ProcState) {
-	this.bus.Unsub(ch)
+	if this.checkBus() {
+		this.bus.Unsub(ch)
+	}
 }
 
-// Close all subscribed channels and release resources.
-func (this *Proc) Shutdown() {
+func (this *Proc) shutdown() {
+	if !this.checkBus() {
+		return
+	}
+
 	this.bus.Shutdown()
+	this.setState(ProcStateBusShuttedDown)
 }
 
 func (this *Proc) pipe(b *Broadcaster) io.ReadCloser {
@@ -196,7 +212,7 @@ func (this *Proc) wait(stdout, stderr io.ReadCloser) error {
 	}()
 
 	wg.Wait()
-	return this.setState(ProcStateDone)
+	return this.setState(ProcStateWaitDone)
 }
 
 func (this *Proc) waitForCmd() {
@@ -222,7 +238,9 @@ func (this *Proc) setState(state ProcState) error {
 	}
 
 	this.state.Store(int32(state))
-	this.bus.Pub(state, procTopic)
+	if this.checkBus() {
+		this.bus.Pub(state, procTopic)
+	}
 
 	return nil
 }
@@ -238,6 +256,16 @@ func (this *Proc) flush(b *Broadcaster, out io.ReadCloser) {
 	}
 
 	out.Close()
+}
+
+func (this *Proc) checkBus() bool {
+	// The bus has already shutted down, so adding another cmd into it's
+	// cmd channel would block the program.
+	if this.GetState() >= ProcStateBusShuttedDown {
+		return false
+	}
+
+	return true
 }
 
 func NewProc(name string, args ...string) *Proc {

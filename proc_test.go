@@ -105,7 +105,6 @@ func (this *ProcStatesTest) Run() {
 		}
 
 		p.Unsub(states)
-		p.Shutdown()
 	}()
 
 	wg.Wait()
@@ -133,14 +132,17 @@ func (this *ProcStatesTest) assertEvents(states chan ProcState) {
 		case 2:
 			shouldBe(ProcStateStopped, state)
 		case 3:
-			shouldBe(ProcStateDone, state)
+			shouldBe(ProcStateWaitDone, state)
+		case 4:
+			this.t.Error("should not receive shutted down state change event!")
+			this.t.Fail()
 		}
 
 		i++
 	}
 
 	if i != 4 {
-		this.t.Errorf("expected 4 state changes received %d", i)
+		this.t.Errorf("expected 5 state changes received %d", i)
 		this.t.Fail()
 	}
 }
