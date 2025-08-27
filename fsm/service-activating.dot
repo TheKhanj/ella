@@ -1,17 +1,29 @@
-digraph systemd_states {
+digraph service_states {
+	label="Service Activating Finite State Machine";
 	rankdir=LR;
-	node [shape=circle, style=filled, fillcolor=lightblue];
+	fontname="Ubuntu";
+	style=solid;
+	graph [pad="0.5"];
+	node [shape=circle, style=filled, fillcolor=lightblue, fontname="Ubuntu"];
 
 	// States
 	inactive               [label="inactive", fillcolor="lightgray"];
 	active                 [label="active", fillcolor="lightgreen"];
 	failed                 [label="failed", fillcolor="lightcoral"];
-	activating_pre_start   [label="activating_pre_start"];
-	activating_start       [label="activating_start"];
-	activating_post_start  [label="activating_post_start"];
+
+	subgraph cluster_activating {
+		label="Activating";
+		style=dashed;
+		fontsize=20;
+
+		activating_pre_start   [label="activating_pre_start"];
+		activating_start       [label="activating_start"];
+		activating_post_start  [label="activating_post_start"];
+	}
 
 	// Transitions
-	inactive              -> activating_pre_start  [label="activate"];
+	failed                -> activating_pre_start  [label="restart/auto-restart"];
+	inactive              -> activating_pre_start  [label="start"];
 	activating_pre_start  -> activating_start      [label="ExecPreStart (ok)"];
 	activating_pre_start  -> failed                [label="ExecPreStart (fail)"];
 	activating_start      -> activating_post_start [label="ExecStart (ok)"];

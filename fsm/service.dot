@@ -1,6 +1,11 @@
-digraph systemd_states {
+digraph service_states {
+	label="Service Finite State Machine"
 	rankdir=LR;
-	node [shape=circle, style=filled, fillcolor=lightblue];
+	fontname="Ubuntu"
+	graph [pad="0.5"];
+	node [shape=circle, style=filled, fillcolor=lightblue, fontname="Ubuntu"];
+	{ rank=min; inactive; };
+	{ rank=same; reloading; active; };
 
 	// States
 	inactive     [label="inactive", fillcolor="lightgray"];
