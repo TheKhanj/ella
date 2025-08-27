@@ -81,7 +81,7 @@ func (this *Proc) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = this.waitForCmd(stdout, stderr)
+	err = this.wait(stdout, stderr)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (this *Proc) setCmd(ctx context.Context) {
 	this.cmd = cmd
 }
 
-func (this *Proc) waitForCmd(stdout, stderr io.ReadCloser) error {
+func (this *Proc) wait(stdout, stderr io.ReadCloser) error {
 	var wg sync.WaitGroup
 	// 1: stdout broadcaster
 	// 2: stderr broadcaster
@@ -192,20 +192,24 @@ func (this *Proc) waitForCmd(stdout, stderr io.ReadCloser) error {
 	go func() {
 		defer wg.Done()
 
-		err := this.cmd.Wait()
-		if err != nil {
-			fmt.Println("process:", err)
-
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				this.exitCode.Store(int32(exitErr.ExitCode()))
-			}
-		}
-
-		this.setState(ProcStateStopped)
+		this.waitForCmd()
 	}()
 
 	wg.Wait()
 	return this.setState(ProcStateDone)
+}
+
+func (this *Proc) waitForCmd() {
+	err := this.cmd.Wait()
+	if err != nil {
+		fmt.Println("process:", err)
+
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			this.exitCode.Store(int32(exitErr.ExitCode()))
+		}
+	}
+
+	this.setState(ProcStateStopped)
 }
 
 func (this *Proc) setState(state ProcState) error {
