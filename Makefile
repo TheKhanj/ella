@@ -1,8 +1,8 @@
 CONFIG_GO_SRC_FILES = $(shell find ./config -name '*.go') config/config.go
 
-all: diagram.png
+all: service.png
 
-diagram.png: diagram.dot
+service.png: service.dot
 	dot -Tpng $< -o $@
 
 config: $(CONFIG_GO_SRC_FILES)
