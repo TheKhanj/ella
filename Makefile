@@ -1,8 +1,10 @@
 CONFIG_GO_SRC_FILES = $(shell find ./config -name '*.go') config/config.go
+FSM_DOT_FILES = $(shell find ./fsm -name '*.dot')
+FSM_PNG_FILES = $(patsubst %.dot,%.png,$(FSM_DOT_FILES))
 
-all: service.png
+all: $(FSM_PNG_FILES)
 
-service.png: service.dot
+fsm/%.png: fsm/%.dot
 	dot -Tpng $< -o $@
 
 config: $(CONFIG_GO_SRC_FILES)
