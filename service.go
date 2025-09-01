@@ -23,6 +23,7 @@ const (
 	ServiceSigReloadDone
 )
 
+//go:generate stringer -type=ServiceSignal
 type ServiceState int
 
 const (

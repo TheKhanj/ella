@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/thekhanj/ella/config"
 )
@@ -18,6 +18,7 @@ const (
 	CODE_GENERAL_ERR
 	CODE_INVALID_CONFIG
 	CODE_INVALID_INVOKATION
+	CODE_INITIALIZATION_FAILED
 )
 
 type Cli struct {
@@ -108,34 +109,37 @@ func (this *RunCli) runDaemon(cfgPath string) int {
 		return CODE_INVALID_CONFIG
 	}
 
-	// TODO: find entry service and use that instead
-	var sCfg config.Service
-	b, err := json.Marshal(c.Services[0])
-	if err != nil {
-		log.Println("error:", err)
-		return CODE_GENERAL_ERR
-	}
-	err = sCfg.UnmarshalJSON(b)
-	if err != nil {
-		log.Println("error:", err)
-		return CODE_GENERAL_ERR
-	}
-	s, err := NewServiceFromConfig(&sCfg)
-	if err != nil {
-		log.Println("error:", err)
-		return CODE_GENERAL_ERR
+	// TODO: find entry service and run that instead of all services
+	serviceCfgs, err := c.GetServices()
+	services := make([]*Service, 0)
+	for _, cfg := range serviceCfgs {
+		s, err := NewServiceFromConfig(cfg)
+		if err != nil {
+			log.Println("error:", err)
+			return CODE_INITIALIZATION_FAILED
+		}
+		services = append(services, s)
 	}
 
 	// TODO: handle sigterm and sigint
-	err = s.Run(context.Background(), func() {
-		err = s.Signal(ServiceSigStart)
-		if err != nil {
-			log.Println("error:", err)
-		}
-	})
-	if err != nil {
-		log.Println("error:", err)
+	var wg sync.WaitGroup
+	wg.Add(len(services))
+	for _, s := range services {
+		go func() {
+			defer wg.Done()
+
+			err = s.Run(context.Background(), func() {
+				err = s.Signal(ServiceSigStart)
+				if err != nil {
+					log.Println("error:", err)
+				}
+			})
+			if err != nil {
+				log.Println("error:", err)
+			}
+		}()
 	}
+	wg.Wait()
 
 	return CODE_SUCCESS
 }
