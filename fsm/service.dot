@@ -17,8 +17,8 @@ digraph service_states {
 
 	// Start transition
 	inactive     -> activating   [label="start"];
-	failed       -> activating   [label="restart/auto-restart"];
-	activating   -> active       [label="start done"];
+	failed       -> activating   [label="start (restart/auto-restart)"];
+	activating   -> active       [label="start done (watchdog)"];
 
 	// Watchdog
 	active       -> failed       [label="fail (watchdog)"];
@@ -27,9 +27,10 @@ digraph service_states {
 	active       -> deactivating [label="stop"];
 	deactivating -> failed       [label="fail"];
 	deactivating -> inactive     [label="stop done"];
-	activating   -> failed       [label="fail"];
+	activating   -> failed       [label="fail (watchdog)"];
 
 	// Reload transition
 	active       -> reloading    [label="reload"];
 	reloading    -> active       [label="reload done"];
+	reloading    -> failed       [label="fail (watchdog)"];
 }

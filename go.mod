@@ -1,4 +1,4 @@
-module github.com/thekhanj/elliot
+module github.com/thekhanj/ella
 
 go 1.24.5
 

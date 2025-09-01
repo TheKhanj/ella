@@ -100,12 +100,12 @@ func (this *Proc) StderrPipe() io.ReadCloser {
 	return this.pipe(this.stderr)
 }
 
-func (this *Proc) GetPid() (int, error) {
+func (this *Proc) GetProcess() (*os.Process, error) {
 	if this.GetState() < ProcStateStarted {
-		return 0, ProcErrNotStarted
+		return nil, ProcErrNotStarted
 	}
 
-	return this.cmd.Process.Pid, nil
+	return this.cmd.Process, nil
 }
 
 func (this *Proc) Signal(signal os.Signal) error {

@@ -10,78 +10,122 @@
       "type": "string",
       "description": "The initial service to launch at system startup."
     },
-    "includes": {
-      "$ref": "#/definitions/IncludePaths"
-    },
-    "defaults": {
-      "$ref": "#/definitions/Defaults"
-    },
-    "relations": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/definitions/Relation"
-      },
-      "propertyNames": {
-        "$ref": "#/definitions/CustomRelationName"
-      }
-    },
     "services": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/definitions/Service"
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Glob pattern matching JSON config files with the same schema; services defined in these files are merged into this file’s services configuration."
+          },
+          {
+            "$ref": "#/definitions/Service"
+          }
+        ]
       }
     }
   },
+  "required": [
+    "services"
+  ],
   "definitions": {
-    "Include": {
+    "Service": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "includes": {
-          "$ref": "#/definitions/IncludePaths"
+        "name": {
+          "type": "string",
+          "description": "Name of the service."
         },
-        "services": {
+        "process": {
+          "$ref": "#/definitions/Proc"
+        },
+        "restart": {
+          "$ref": "#/definitions/RestartStrategy"
+        },
+        "relations": {
           "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/RelationName"
+          },
           "additionalProperties": {
-            "$ref": "#/definitions/Service"
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "Service name."
+                },
+                {
+                  "$ref": "#/definitions/ServiceListDirGlob"
+                }
+              ]
+            }
           }
         }
       },
       "required": [
-        "services"
+        "name",
+        "process",
+        "restart",
+        "relations"
       ]
     },
-    "IncludePaths": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "description": "Glob pattern to match files to include."
+    "ServiceListDirGlob": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "glob"
+          ]
+        },
+        "glob": {
+          "type": "string",
+          "description": "A glob pattern that identifies directories containing empty files, where each file is named after its corresponding relation service."
+        }
       }
     },
-    "Defaults": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "process": {
-          "$ref": "#/definitions/ProcessDefaults"
-        }
-      },
-      "required": [
-        "process"
+    "RelationName": {
+      "type": "string",
+      "enum": [
+        "requires",
+        "wants",
+        "requisite",
+        "bindsTo",
+        "partOf",
+        "conflicts",
+        "before",
+        "after",
+        "reloadCascade"
       ]
     },
-    "ProcessDefaults": {
+    "Proc": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "exec": {
+          "$ref": "#/definitions/ProcExec"
+        },
+        "reload": {
+          "$ref": "#/definitions/ReloadProcAction",
+          "description": "Action to do on the process when receiving reload signal.",
+          "default": "SIGHUP"
+        },
+        "stop": {
+          "$ref": "#/definitions/StopProcAction",
+          "description": "Action to do on the process when receiving stop signal.",
+          "default": "SIGINT"
+        },
+        "cwd": {
+          "$ref": "#/definitions/Cwd"
+        },
         "user": {
           "$ref": "#/definitions/User"
         },
         "group": {
           "$ref": "#/definitions/Group"
-        },
-        "cwd": {
-          "$ref": "#/definitions/Cwd"
         },
         "stdout": {
           "$ref": "#/definitions/Stdout"
@@ -91,163 +135,130 @@
         },
         "stdin": {
           "$ref": "#/definitions/Stdin"
-        },
-        "shell": {
-          "type": "string",
-          "pattern": "^/.*$",
-          "description": "Binary used for shell-scoped executions."
         },
         "environments": {
           "$ref": "#/definitions/Environments"
-        },
-        "dependency": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "relation": {
-              "$ref": "#/definitions/RelationName"
-            }
-          },
-          "required": [
-            "relation"
-          ]
-        }
-      },
-      "required": [
-        "user",
-        "group",
-        "cwd",
-        "stdout",
-        "stderr",
-        "stdin",
-        "shell",
-        "environments",
-        "dependency"
-      ]
-    },
-    "Service": {
-      "oneOf": [
-        {
-          "$ref": "#/definitions/GroupService"
-        },
-        {
-          "$ref": "#/definitions/ProcessService"
-        }
-      ]
-    },
-    "GroupService": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "group"
-          ]
-        },
-        "dependencies": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Dependency"
-          }
-        }
-      },
-      "required": [
-        "type",
-        "dependencies"
-      ]
-    },
-    "ProcessService": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "process"
-          ]
-        },
-        "exec": {
-          "$ref": "#/definitions/Exec"
-        },
-        "reload": {
-          "$ref": "#/definitions/Exec"
-        },
-        "monitor": {
-          "$ref": "#/definitions/Monitor"
-        },
-        "cwd": {
-          "$ref": "#/definitions/Cwd"
-        },
-        "user": {
-          "$ref": "#/definitions/User"
-        },
-        "group": {
-          "$ref": "#/definitions/Group"
-        },
-        "stdout": {
-          "$ref": "#/definitions/Stdout"
-        },
-        "stderr": {
-          "$ref": "#/definitions/Stderr"
-        },
-        "stdin": {
-          "$ref": "#/definitions/Stdin"
-        },
-        "shell": {
-          "type": "string",
-          "pattern": "^/.*$",
-          "description": "Binary used for shell-scoped executions."
         },
         "watchdog": {
           "$ref": "#/definitions/Watchdog"
-        },
-        "environments": {
-          "$ref": "#/definitions/Environments"
-        },
-        "dependencies": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Dependency"
-          }
         }
       },
       "required": [
-        "type",
         "exec",
-        "shell",
         "reload",
-        "monitor",
+        "stop",
         "cwd",
         "user",
         "group",
         "stdout",
         "stderr",
         "stdin",
-        "watchdog",
         "environments",
-        "dependencies"
+        "watchdog"
       ]
     },
-    "Exec": {
+    "ProcExec": {
+      "type": "string",
+      "description": "Binary command with absolute/relative path and optional arguments."
+    },
+    "StopProcAction": {
       "oneOf": [
         {
-          "type": "string",
-          "pattern": "^[\\./].*$",
-          "description": "Binary command with absolute/relative path and optional arguments."
+          "$ref": "#/definitions/ProcActionSignalCode"
         },
         {
-          "type": "string",
-          "pattern": "^\\$.*$",
-          "description": "Content to run in the shell."
+          "$ref": "#/definitions/ProcActionExec"
+        },
+        {
+          "$ref": "#/definitions/StopProcActionSignal"
         }
       ]
     },
-    "Monitor": {
-      "description": "Strategy to use for monitoring status of the service.",
-      "$ref": "#/definitions/SimpleMonitor"
+    "ReloadProcAction": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/ProcActionSignalCode"
+        },
+        {
+          "$ref": "#/definitions/ProcActionExec"
+        }
+      ]
     },
-    "SimpleMonitor": {
+    "ProcActionSignalCode": {
+      "type": "string",
+      "enum": [
+        "SIGHUP",
+        "SIGINT",
+        "SIGQUIT",
+        "SIGILL",
+        "SIGABRT",
+        "SIGFPE",
+        "SIGKILL",
+        "SIGSEGV",
+        "SIGPIPE",
+        "SIGALRM",
+        "SIGTERM",
+        "SIGUSR1",
+        "SIGUSR2",
+        "SIGCHLD",
+        "SIGCONT",
+        "SIGSTOP",
+        "SIGTSTP",
+        "SIGTTIN",
+        "SIGTTOU"
+      ]
+    },
+    "StopProcActionSignal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "signal"
+          ]
+        },
+        "code": {
+          "$ref": "#/definitions/ProcActionSignalCode"
+        },
+        "timeout": {
+          "$ref": "#/definitions/Duration"
+        }
+      },
+      "required": [
+        "type",
+        "code",
+        "timeout"
+      ]
+    },
+    "ProcActionExec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "exec"
+          ]
+        },
+        "exec": {
+          "$ref": "#/definitions/ProcExec"
+        },
+        "timeout": {
+          "$ref": "#/definitions/Duration"
+        }
+      },
+      "required": [
+        "type",
+        "code",
+        "timeout"
+      ]
+    },
+    "Watchdog": {
+      "description": "Strategy to use for monitoring status of the service.",
+      "$ref": "#/definitions/SimpleWatchdog"
+    },
+    "SimpleWatchdog": {
       "type": "object",
       "description": "Simple monitor starts the process immediately; process becomes inactive on normal exit, fails on non-zero exit.",
       "additionalProperties": false,
@@ -263,183 +274,80 @@
         "strategy"
       ]
     },
-    "Dependency": {
-      "oneOf": [
-        {
-          "type": "string",
-          "description": "Name of the dependency."
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Name of the dependency."
-            },
-            "relation": {
-              "$ref": "#/definitions/RelationName"
-            }
-          },
-          "required": [
-            "name",
-            "relation"
-          ]
-        }
-      ]
+    "RestartStrategy": {
+      "$ref": "#/definitions/AlwaysRestart"
     },
-    "Relation": {
+    "AlwaysRestart": {
       "type": "object",
+      "description": "Always restart strategy.",
       "additionalProperties": false,
       "properties": {
-        "on": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "child": {
-              "type": "object",
-              "additionalProperties": false,
-              "description": "Actions to do on child's state changes.",
-              "properties": {
-                "inactive": {
-                  "$ref": "#/definitions/OnParentAction"
-                },
-                "active": {
-                  "$ref": "#/definitions/OnParentAction"
-                },
-                "failed": {
-                  "$ref": "#/definitions/OnParentAction"
-                },
-                "activating": {
-                  "$ref": "#/definitions/OnParentAction"
-                },
-                "deactivating": {
-                  "$ref": "#/definitions/OnParentAction"
-                },
-                "reloading": {
-                  "$ref": "#/definitions/OnParentAction"
-                }
-              },
-              "required": [
-                "inactive",
-                "active",
-                "failed",
-                "activating",
-                "deactivating",
-                "reloading"
-              ]
-            },
-            "parent": {
-              "type": "object",
-              "additionalProperties": false,
-              "description": "Actions to do on parent's state changes.",
-              "properties": {
-                "inactive": {
-                  "$ref": "#/definitions/OnChildAction"
-                },
-                "active": {
-                  "$ref": "#/definitions/OnChildAction"
-                },
-                "failed": {
-                  "$ref": "#/definitions/OnChildAction"
-                },
-                "activating": {
-                  "$ref": "#/definitions/OnChildAction"
-                },
-                "deactivating": {
-                  "$ref": "#/definitions/OnChildAction"
-                },
-                "reloading": {
-                  "$ref": "#/definitions/OnChildAction"
-                }
-              },
-              "required": [
-                "inactive",
-                "active",
-                "failed",
-                "activating",
-                "deactivating",
-                "reloading"
-              ]
-            }
-          },
-          "required": [
-            "child",
-            "parent"
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "always"
           ]
+        },
+        "backoff": {
+          "$ref": "#/definitions/Duration",
+          "description": "The amount of time to wait before automatically restarting the process after it fails."
         }
       },
       "required": [
-        "on"
+        "strategy",
+        "backoff"
       ]
     },
-    "Action": {
-      "type": "string",
-      "enum": [
-        "start",
-        "stop",
-        "fail",
-        "restart",
-        "reload"
-      ]
-    },
-    "OnParentAction": {
+    "Environments": {
       "oneOf": [
         {
-          "type": "null"
+          "$ref": "#/definitions/Inherit",
+          "description": "Inherit all environment variables from the main process."
         },
         {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "$ref": "#/definitions/Inherit",
+                "description": "Use the value from the same key in the environment variables of the main process."
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!\\!).*$",
+                "description": "Literal value to pass in."
+              },
+              {
+                "$ref": "#/definitions/LiteralEnvValue"
+              }
+            ]
+          },
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          }
+        }
+      ]
+    },
+    "LiteralEnvValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
           "type": "string",
           "enum": [
-            "start parent",
-            "stop parent",
-            "fail parent",
-            "restart parent",
-            "reload parent"
+            "literal"
           ]
-        }
-      ]
-    },
-    "OnChildAction": {
-      "oneOf": [
-        {
-          "type": "null"
         },
-        {
+        "value": {
           "type": "string",
-          "enum": [
-            "start child",
-            "stop child",
-            "fail child",
-            "restart child",
-            "reload child"
-          ]
+          "description": "Literal value to pass in."
         }
+      },
+      "required": [
+        "type",
+        "value"
       ]
-    },
-    "RelationName": {
-      "description": "Type of the relation between parent and child process.",
-      "oneOf": [
-        {
-          "$ref": "#/definitions/StaticRelationName"
-        },
-        {
-          "$ref": "#/definitions/CustomRelationName"
-        }
-      ]
-    },
-    "StaticRelationName": {
-      "type": "string",
-      "enum": [
-        "!two-way"
-      ],
-      "pattern": "^\\!.*$",
-      "description": "Hard-coded relations."
-    },
-    "CustomRelationName": {
-      "type": "string",
-      "pattern": "^(?!\\!).*$",
-      "description": "User defined relations."
     },
     "Cwd": {
       "type": "string",
@@ -450,13 +358,13 @@
         {
           "type": "string",
           "description": "User to run the process as.",
-          "pattern": "^[a-z_][a-z0-9_-]*$"
+          "pattern": "^[a-z_][a-z0-9_-]*$",
+          "examples": [
+            "root"
+          ]
         },
         {
-          "type": "string",
-          "enum": [
-            "!inherit"
-          ],
+          "$ref": "#/definitions/Inherit",
           "description": "Use the same user as the main process."
         },
         {
@@ -471,13 +379,13 @@
         {
           "type": "string",
           "description": "Group to run the process as.",
-          "pattern": "^[a-z_][a-z0-9_-]*$"
+          "pattern": "^[a-z_][a-z0-9_-]*$",
+          "examples": [
+            "root"
+          ]
         },
         {
-          "type": "string",
-          "enum": [
-            "!inherit"
-          ],
+          "$ref": "#/definitions/Inherit",
           "description": "Use the same group as the main process."
         },
         {
@@ -496,6 +404,11 @@
       "description": "Whether to show stdout or not."
     },
     "Stdin": {
+      "examples": [
+        null,
+        "/absolute/path/to/a/file",
+        "./relative/path/to/a/file"
+      ],
       "oneOf": [
         {
           "type": "null",
@@ -503,94 +416,22 @@
         },
         {
           "type": "string",
-          "pattern": "^[\\./].*$",
           "description": "File to use for stdin."
-        },
-        {
-          "type": "string",
-          "pattern": "^\\!.*$",
-          "description": "Command run; stdout is passed to stdin."
-        },
-        {
-          "type": "string",
-          "pattern": "^\\$.*$",
-          "description": "Content to run in the shell; stdout is passed to stdin."
-        }
-      ]
-    },
-    "Watchdog": {
-      "description": "Watchdog strategy to use.",
-      "$ref": "#/definitions/RestartWatchdog"
-    },
-    "RestartWatchdog": {
-      "type": "object",
-      "description": "Always restart strategy.",
-      "additionalProperties": false,
-      "properties": {
-        "strategy": {
-          "type": "string",
-          "enum": [
-            "restart"
-          ]
-        },
-        "interval": {
-          "$ref": "#/definitions/Duration"
-        }
-      },
-      "required": [
-        "strategy",
-        "interval"
-      ]
-    },
-    "Environments": {
-      "oneOf": [
-        {
-          "type": "string",
-          "enum": [
-            "!inherit"
-          ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "!inherit"
-                ],
-                "description": "Use the value from the same key in the environment variables of the main process."
-              },
-              {
-                "type": "string",
-                "pattern": "^(?!\\!).*$",
-                "description": "Literal value to pass in."
-              },
-              {
-                "type": "string",
-                "pattern": "^(?!\\!inherit$)!.*$",
-                "description": "Remove the first '!' and treat the rest as a literal value. To pass '!inherit' literally, use '!!inherit'; for '!!inherit', use '!!!inherit', and so on."
-              }
-            ]
-          },
-          "propertyNames": {
-            "type": "string",
-            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
-          }
         }
       ]
     },
     "Duration": {
       "type": "string",
-      "description": "Time duration in golang's parsing format.",
-      "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"
+      "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+      "examples": [
+        "5s"
+      ]
+    },
+    "Inherit": {
+      "type": "string",
+      "enum": [
+        "!inherit"
+      ]
     }
-  },
-  "required": [
-    "entry",
-    "includes",
-    "defaults",
-    "relations",
-    "services"
-  ]
+  }
 }
