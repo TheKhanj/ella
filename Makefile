@@ -4,7 +4,7 @@ ifneq ($(VERSION),dev)
 LD_FLAGS += -s -w
 endif
 
-CONFIG_GO_SRC_FILES = $(shell find ./config -name '*.go') config/config.go
+CONFIG_GO_SRC_FILES = $(shell find ./config -name '*.go')
 FSM_DOT_FILES = $(shell find ./fsm -name '*.dot')
 FSM_PNG_FILES = $(patsubst %.dot,%.png,$(FSM_DOT_FILES))
 
@@ -22,6 +22,7 @@ fsm/%.png: fsm/%.dot
 	dot -Tpng $< -o $@
 
 config: $(CONFIG_GO_SRC_FILES)
+	touch config
 
 config/config: schema.json
 	cat $< > $@

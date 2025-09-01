@@ -11,7 +11,7 @@ func (this *Config) GetServices() ([]*Service, error) {
 
 	for _, s := range this.Services {
 		if globStr, ok := s.(string); ok {
-			err := this.globInclude(ret, globStr)
+			err := this.globInclude(&ret, globStr)
 			if err != nil {
 				return nil, err
 			}
@@ -35,7 +35,7 @@ func (this *Config) GetServices() ([]*Service, error) {
 }
 
 func (this *Config) globInclude(
-	services []*Service, pattern string,
+	services *[]*Service, pattern string,
 ) error {
 	files, err := filepath.Glob(pattern)
 	if err != nil {
@@ -51,7 +51,7 @@ func (this *Config) globInclude(
 		if err != nil {
 			return err
 		}
-		services = append(services, subServices...)
+		*services = append(*services, subServices...)
 	}
 
 	return nil

@@ -112,6 +112,11 @@ func (this *RunCli) runDaemon(cfgPath string) int {
 
 	// TODO: find entry service and run that instead of all services
 	serviceCfgs, err := c.GetServices()
+	if err != nil {
+		log.Println("error:", err)
+
+		return CODE_INVALID_CONFIG
+	}
 	services := make([]*Service, 0)
 	for _, cfg := range serviceCfgs {
 		s, err := NewServiceFromConfig(cfg)
