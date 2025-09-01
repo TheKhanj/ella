@@ -4,12 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
-	"sync"
 
 	"github.com/thekhanj/ella/common"
-	"github.com/thekhanj/ella/config"
 )
 
 var VERSION = "dev"
@@ -81,6 +78,7 @@ type RunCli struct {
 func (this *RunCli) Exec() int {
 	f := flag.NewFlagSet("ella", flag.ExitOnError)
 	config := f.String("c", "ella.json", "config file")
+	hideLogs := f.Bool("l", false, "supress logs")
 
 	f.Usage = func() {
 		fmt.Println("Usage:")
@@ -98,56 +96,12 @@ func (this *RunCli) Exec() int {
 		return CODE_INVALID_INVOKATION
 	}
 
-	return this.runDaemon(*config)
-}
-
-func (this *RunCli) runDaemon(cfgPath string) int {
-	var c config.Config
-
-	err := config.ReadConfig(cfgPath, &c)
-	if err != nil {
-		fmt.Println("error: invalid config:", err)
-		return CODE_INVALID_CONFIG
-	}
-
-	// TODO: find entry service and run that instead of all services
-	serviceCfgs, err := c.GetServices()
-	if err != nil {
-		log.Println("error:", err)
-
-		return CODE_INVALID_CONFIG
-	}
-	services := make([]*Service, 0)
-	for _, cfg := range serviceCfgs {
-		s, err := NewServiceFromConfig(cfg)
-		if err != nil {
-			log.Println("error:", err)
-			return CODE_INITIALIZATION_FAILED
-		}
-		services = append(services, s)
-	}
-
 	ctx := common.NewSignalCtx(context.Background())
-	var wg sync.WaitGroup
-	wg.Add(len(services))
-	for _, s := range services {
-		go func() {
-			defer wg.Done()
-
-			err = s.Run(ctx, func() {
-				err = s.Signal(ServiceSigStart)
-				if err != nil {
-					log.Println("error:", err)
-				}
-			})
-			if err != nil {
-				log.Println("error:", err)
-			}
-		}()
+	d := Daemon{
+		log: !*hideLogs,
 	}
-	wg.Wait()
 
-	return CODE_SUCCESS
+	return d.Run(ctx, *config)
 }
 
 func main() {

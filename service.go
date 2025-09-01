@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
+	"sync"
 	"sync/atomic"
 
 	"github.com/cskr/pubsub/v2"
@@ -45,6 +47,8 @@ var (
 )
 
 type Service struct {
+	Name string
+
 	createProc func() *Proc
 	running    atomic.Bool
 	signals    chan ServiceSignal
@@ -52,14 +56,22 @@ type Service struct {
 	state ServiceState
 	bus   *pubsub.PubSub[ServiceTopic, ServiceState]
 
-	proc *Proc
-	wd   Watchdog
+	// TODO: get a lock on this, it's needed considering pipes
+	mu    sync.RWMutex
+	proc  *Proc
+	procs *pubsub.PubSub[int, *Proc]
+	wd    Watchdog
 
 	stopAction   ProcAction
 	reloadAction ProcAction
 }
 
 func (this *Service) Run(ctx context.Context, startHook func()) error {
+	defer func() {
+		this.bus.Shutdown()
+		this.procs.Shutdown()
+	}()
+
 	if this.running.Load() == true {
 		return ServiceErrAlreadyRunning
 	}
@@ -97,6 +109,18 @@ func (this *Service) Unsub(ch chan ServiceState) error {
 	return nil
 }
 
+func (this *Service) StdoutPipe() io.ReadCloser {
+	return this.pipe(func(proc *Proc) io.ReadCloser {
+		return proc.StdoutPipe()
+	})
+}
+
+func (this *Service) StderrPipe() io.ReadCloser {
+	return this.pipe(func(proc *Proc) io.ReadCloser {
+		return proc.StderrPipe()
+	})
+}
+
 func (this *Service) Signal(signal ServiceSignal) error {
 	if !this.running.Load() {
 		return ServiceErrNotRunning
@@ -104,6 +128,34 @@ func (this *Service) Signal(signal ServiceSignal) error {
 
 	this.signals <- signal
 	return nil
+}
+
+func (this *Service) pipe(factory func(proc *Proc) io.ReadCloser) io.ReadCloser {
+	r, w := io.Pipe()
+	go func() {
+		defer w.Close()
+
+		procs := this.procs.Sub(0)
+
+		proc := this.getProc()
+		if proc != nil {
+			_, err := io.Copy(w, factory(proc))
+			if err != nil {
+				log.Println("service:", err)
+				return
+			}
+		}
+
+		for proc := range procs {
+			_, err := io.Copy(w, factory(proc))
+			if err != nil {
+				log.Println("service:", err)
+				return
+			}
+		}
+	}()
+
+	return r
 }
 
 // Shouldn't be called concurrently!
@@ -134,6 +186,23 @@ func (this *Service) handleSignal(ctx context.Context, signal ServiceSignal) {
 	}
 }
 
+func (this *Service) getProc() *Proc {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
+
+	return this.proc
+}
+
+func (this *Service) setProc(proc *Proc) {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	this.proc = proc
+	if proc != nil {
+		this.procs.Pub(proc, 0)
+	}
+}
+
 func (this *Service) start(ctx context.Context) {
 	this.setState(ServiceStateActivating)
 	// TODO: start dependencies
@@ -143,11 +212,12 @@ func (this *Service) start(ctx context.Context) {
 		return
 	}
 
-	this.proc = this.createProc()
-	ch := this.wd.Watch(this.proc)
+	proc := this.createProc()
+	this.setProc(proc)
+	ch := this.wd.Watch(proc)
 
 	go func() {
-		err := this.proc.Run(ctx)
+		err := proc.Run(ctx)
 		if err != nil {
 			log.Println("service:", err)
 		}
@@ -171,9 +241,10 @@ func (this *Service) startDone(ctx context.Context) {
 
 func (this *Service) stop(ctx context.Context) {
 	this.setState(ServiceStateDeactivating)
-	this.wd.Unwatch(this.proc)
+	proc := this.getProc()
+	this.wd.Unwatch(proc)
 	// TODO: stop dependencies
-	err := this.stopAction.Exec(this.proc)
+	err := this.stopAction.Exec(proc)
 	if err != nil {
 		log.Println("serivce:", err)
 		this.Signal(ServiceSigFail)
@@ -194,12 +265,13 @@ func (this *Service) reload(ctx context.Context) {
 
 	this.setState(ServiceStateReloading)
 	// TODO: reload dependencies
-	if this.proc == nil {
+	proc := this.getProc()
+	if proc == nil {
 		this.Signal(ServiceSigReloadDone)
 		return
 	}
 
-	err := this.reloadAction.Exec(this.proc)
+	err := this.reloadAction.Exec(proc)
 	if err != nil {
 		log.Println("service:", err)
 	}
@@ -216,16 +288,19 @@ func (this *Service) reloadDone(ctx context.Context) {
 
 func (this *Service) fail(ctx context.Context) {
 	this.setState(ServiceStateFailed)
-	this.proc = nil
+	this.setProc(nil)
 }
 
 func NewService(
+	name string,
 	stopAction ProcAction,
 	reloadAction ProcAction,
 	watchdog Watchdog,
 	createProc func() *Proc,
 ) *Service {
 	return &Service{
+		Name: name,
+
 		createProc: createProc,
 		running:    atomic.Bool{},
 		signals:    make(chan ServiceSignal),
@@ -233,8 +308,10 @@ func NewService(
 		state: ServiceStateInactive,
 		bus:   pubsub.New[ServiceTopic, ServiceState](0),
 
-		proc: nil,
-		wd:   watchdog,
+		mu:    sync.RWMutex{},
+		proc:  nil,
+		procs: pubsub.New[int, *Proc](0),
+		wd:    watchdog,
 
 		stopAction:   stopAction,
 		reloadAction: reloadAction,
@@ -272,6 +349,7 @@ func NewServiceFromConfig(cfg *config.Service) (*Service, error) {
 	}
 
 	return NewService(
+		cfg.Name,
 		stop, reload, wd,
 		func() *Proc {
 			return NewProc(parts[0], parts[1:]...)
