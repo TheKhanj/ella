@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/cskr/pubsub/v2"
+	"github.com/google/shlex"
 )
 
 type ProcState int
@@ -284,4 +285,16 @@ func NewProc(name string, args ...string) *Proc {
 
 		bus: pubsub.New[ProcTopic, ProcState](0),
 	}
+}
+
+func ParseCommandLine(cmd string) ([]string, error) {
+	parts, err := shlex.Split(cmd)
+	if err != nil {
+		return nil, err
+	}
+	if len(parts) == 0 {
+		return nil, errors.New("empty command line")
+	}
+
+	return parts, nil
 }

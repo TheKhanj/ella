@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"sync"
+
+	"github.com/thekhanj/ella/config"
 )
 
 type WatchdogSignal int
@@ -14,6 +17,14 @@ const (
 type Watchdog interface {
 	Watch(proc *Proc) chan WatchdogSignal
 	Unwatch(proc *Proc)
+}
+
+func NewWatchdogFromConfig(cfg config.ProcWatchdog) (Watchdog, error) {
+	if _, ok := cfg.(*config.SimpleWatchdog); ok {
+		return NewSimpleWatchdog(), nil
+	} else {
+		return nil, fmt.Errorf("invalid watchdog config: %v", cfg)
+	}
 }
 
 type SimpleWatchdog struct {
@@ -82,3 +93,10 @@ func (this *SimpleWatchdog) unsetStates(proc *Proc) {
 }
 
 var _ Watchdog = (*SimpleWatchdog)(nil)
+
+func NewSimpleWatchdog() *SimpleWatchdog {
+	return &SimpleWatchdog{
+		mu:    sync.RWMutex{},
+		procs: make(map[*Proc]chan ProcState),
+	}
+}

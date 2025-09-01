@@ -2,30 +2,35 @@ package main
 
 import (
 	"errors"
-	"os"
+	"fmt"
 	"syscall"
 	"time"
 
 	"github.com/thekhanj/ella/common"
+	"github.com/thekhanj/ella/config"
 )
 
 var ProcActionErrNeverStopped error = errors.New("process never stopped")
 
 type ProcAction interface {
-	Exec(proc *os.Process) error
+	Exec(proc *Proc) error
 }
 
-type StopProcAction struct {
-	proc    *Proc
+type StopProcActionSignal struct {
 	timeout time.Duration
 	signal  syscall.Signal
 }
 
-func (this *StopProcAction) Exec(process *os.Process) error {
-	states := this.proc.Sub()
-	defer this.proc.Unsub(states)
+func (this *StopProcActionSignal) Exec(proc *Proc) error {
+	states := proc.Sub()
+	defer proc.Unsub(states)
 
-	err := process.Signal(this.signal)
+	process, err := proc.GetProcess()
+	if err != nil {
+		return err
+	}
+
+	err = process.Signal(this.signal)
 	if err != nil {
 		return err
 	}
@@ -54,14 +59,49 @@ func (this *StopProcAction) Exec(process *os.Process) error {
 	}
 }
 
-var _ (ProcAction) = (*StopProcAction)(nil)
+func NewStopProcActionFromConfig(cfg config.StopProcAction) (ProcAction, error) {
+	if stop, ok := cfg.(*config.StopProcActionSignal); ok {
+		timeout, err := time.ParseDuration(string(stop.Timeout))
+		if err != nil {
+			return nil, err
+		}
+		return &StopProcActionSignal{
+			timeout: timeout,
+			signal:  stop.Code.GetSignal(),
+		}, nil
+	} else if signal, ok := cfg.(config.ProcActionSignalCode); ok {
+		return &StopProcActionSignal{
+			timeout: time.Second * 10,
+			signal:  signal.GetSignal(),
+		}, nil
+	} else {
+		return nil, fmt.Errorf("invalid stop action config: %v", cfg)
+	}
+}
 
-type ReloadProcAction struct {
+var _ (ProcAction) = (*StopProcActionSignal)(nil)
+
+type ReloadProcActionSignal struct {
 	signal syscall.Signal
 }
 
-func (this *ReloadProcAction) Exec(process *os.Process) error {
+func (this *ReloadProcActionSignal) Exec(proc *Proc) error {
+	process, err := proc.GetProcess()
+	if err != nil {
+		return err
+	}
+
 	return process.Signal(this.signal)
 }
 
-var _ (ProcAction) = (*ReloadProcAction)(nil)
+func NewReloadProcActionFromConfig(cfg config.ReloadProcAction) (ProcAction, error) {
+	if signal, ok := cfg.(config.ProcActionSignalCode); ok {
+		return &ReloadProcActionSignal{
+			signal: signal.GetSignal(),
+		}, nil
+	} else {
+		return nil, fmt.Errorf("invalid reload action config: %v", cfg)
+	}
+}
+
+var _ (ProcAction) = (*ReloadProcActionSignal)(nil)

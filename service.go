@@ -7,8 +7,10 @@ import (
 	"sync/atomic"
 
 	"github.com/cskr/pubsub/v2"
+	"github.com/thekhanj/ella/config"
 )
 
+//go:generate stringer -type=ServiceSignal
 type ServiceSignal int
 
 const (
@@ -56,12 +58,13 @@ type Service struct {
 	reloadAction ProcAction
 }
 
-func (this *Service) Run(ctx context.Context) error {
+func (this *Service) Run(ctx context.Context, startHook func()) error {
 	if this.running.Load() == true {
 		return ServiceErrAlreadyRunning
 	}
 
 	this.running.Store(true)
+	go startHook()
 
 	for {
 		select {
@@ -176,11 +179,7 @@ func (this *Service) stop(ctx context.Context) {
 	this.setState(ServiceStateDeactivating)
 	this.wd.Unwatch(this.proc)
 	// TODO: stop dependencies
-	process, err := this.proc.GetProcess()
-	if err != nil {
-		panic(err)
-	}
-	err = this.stopAction.Exec(process)
+	err := this.stopAction.Exec(this.proc)
 	if err != nil {
 		log.Println("serivce:", err)
 		this.Signal(ServiceSigFail)
@@ -206,11 +205,7 @@ func (this *Service) reload(ctx context.Context) {
 		return
 	}
 
-	process, err := this.proc.GetProcess()
-	if err != nil {
-		panic(err)
-	}
-	err = this.reloadAction.Exec(process)
+	err := this.reloadAction.Exec(this.proc)
 	if err != nil {
 		log.Println("service:", err)
 	}
@@ -228,4 +223,64 @@ func (this *Service) reloadDone(ctx context.Context) {
 func (this *Service) fail(ctx context.Context) {
 	this.setState(ServiceStateFailed)
 	this.proc = nil
+}
+
+func NewService(
+	stopAction ProcAction,
+	reloadAction ProcAction,
+	watchdog Watchdog,
+	createProc func() *Proc,
+) *Service {
+	return &Service{
+		createProc: createProc,
+		running:    atomic.Bool{},
+		signals:    make(chan ServiceSignal),
+
+		state: ServiceStateInactive,
+		bus:   pubsub.New[ServiceTopic, ServiceState](0),
+
+		proc: nil,
+		wd:   watchdog,
+
+		stopAction:   stopAction,
+		reloadAction: reloadAction,
+	}
+}
+
+func NewServiceFromConfig(cfg *config.Service) (*Service, error) {
+	parts, err := ParseCommandLine(string(cfg.Process.Exec))
+	if err != nil {
+		return nil, err
+	}
+	wdCfg, err := cfg.Process.GetWatchdog()
+	if err != nil {
+		return nil, err
+	}
+	wd, err := NewWatchdogFromConfig(wdCfg)
+	if err != nil {
+		return nil, err
+	}
+	stopCfg, err := cfg.Process.GetStop()
+	if err != nil {
+		return nil, err
+	}
+	stop, err := NewStopProcActionFromConfig(stopCfg)
+	if err != nil {
+		return nil, err
+	}
+	reloadCfg, err := cfg.Process.GetReload()
+	if err != nil {
+		return nil, err
+	}
+	reload, err := NewReloadProcActionFromConfig(reloadCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewService(
+		stop, reload, wd,
+		func() *Proc {
+			return NewProc(parts[0], parts[1:]...)
+		},
+	), nil
 }
