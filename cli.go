@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/thekhanj/ella/common"
 	"github.com/thekhanj/ella/config"
 )
 
@@ -121,14 +122,14 @@ func (this *RunCli) runDaemon(cfgPath string) int {
 		services = append(services, s)
 	}
 
-	// TODO: handle sigterm and sigint
+	ctx := common.NewSignalCtx(context.Background())
 	var wg sync.WaitGroup
 	wg.Add(len(services))
 	for _, s := range services {
 		go func() {
 			defer wg.Done()
 
-			err = s.Run(context.Background(), func() {
+			err = s.Run(ctx, func() {
 				err = s.Signal(ServiceSigStart)
 				if err != nil {
 					log.Println("error:", err)

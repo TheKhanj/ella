@@ -67,24 +67,17 @@ func (this *Service) Run(ctx context.Context, startHook func()) error {
 	this.running.Store(true)
 	go startHook()
 
-	for {
-		select {
-		case <-ctx.Done():
-			this.running.Store(false)
-			this.signals <- ServiceSigStop
-			close(this.signals)
-			for sig := range this.signals {
-				this.handleSignal(ctx, sig)
-			}
-			return nil
-		case signal, ok := <-this.signals:
-			if !ok {
-				return nil
-			}
-
+	go func() {
+		for signal := range this.signals {
 			this.handleSignal(ctx, signal)
 		}
-	}
+	}()
+
+	<-ctx.Done()
+	this.running.Store(false)
+	this.signals <- ServiceSigStop
+	close(this.signals)
+	return nil
 }
 
 func (this *Service) Sub() (chan ServiceState, error) {
