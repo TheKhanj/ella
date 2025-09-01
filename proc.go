@@ -56,8 +56,8 @@ type Proc struct {
 	bus *pubsub.PubSub[ProcTopic, ProcState]
 }
 
-func (this *Proc) Start(ctx context.Context) error {
-	defer this.shutdown()
+func (this *Proc) Run(ctx context.Context) error {
+	defer this.Shutdown()
 
 	err := this.setState(ProcStateStarting)
 	if err != nil {
@@ -147,7 +147,7 @@ func (this *Proc) Unsub(ch chan ProcState) {
 	}
 }
 
-func (this *Proc) shutdown() {
+func (this *Proc) Shutdown() {
 	if !this.checkBus() {
 		return
 	}

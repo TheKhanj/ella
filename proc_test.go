@@ -32,7 +32,7 @@ func (this *ProcPipesTest) Run() {
 	go func() {
 		defer close(done)
 
-		err := p.Start(ctx)
+		err := p.Run(ctx)
 		if err != nil {
 			this.t.Error(err)
 			this.t.Fail()
@@ -98,7 +98,7 @@ func (this *ProcStatesTest) Run() {
 	go func() {
 		defer wg.Done()
 
-		err := p.Start(ctx)
+		err := p.Run(ctx)
 		if err != nil {
 			this.t.Error(err)
 			this.t.Fail()
