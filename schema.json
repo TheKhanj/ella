@@ -10,6 +10,10 @@
       "type": "string",
       "description": "The initial service to launch at system startup."
     },
+    "pidFile": {
+      "type": "string",
+      "description": "Path to write the pid to. For the user root defaults to /var/run/ella/main.pid and for other users defaults to /var/run/user/{uid}/ella/main.pid"
+    },
     "services": {
       "type": "array",
       "items": {
