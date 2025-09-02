@@ -152,6 +152,11 @@ func (this *LogsCli) Exec() int {
 	} else {
 		serviceNames = f.Args()
 	}
+	if len(serviceNames) == 0 {
+		fmt.Println("error: no service name specified")
+
+		return CODE_INVALID_INVOKATION
+	}
 
 	ctx := common.NewSignalCtx(context.Background())
 
