@@ -5,8 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/thekhanj/ella/common"
+	"github.com/thekhanj/ella/config"
 )
 
 var VERSION = "dev"
@@ -65,6 +68,9 @@ func (this *Cli) Exec() int {
 	case "run":
 		c := RunCli{args: f.Args()[1:]}
 		return c.Exec()
+	case "logs":
+		c := LogsCli{args: f.Args()[1:]}
+		return c.Exec()
 	default:
 		fmt.Printf("error: invalid command \"%s\"\n", cmd)
 		return CODE_INVALID_INVOKATION
@@ -102,6 +108,80 @@ func (this *RunCli) Exec() int {
 	}
 
 	return d.Run(ctx, *config)
+}
+
+type LogsCli struct {
+	args []string
+}
+
+func (this *LogsCli) Exec() int {
+	f := flag.NewFlagSet("ella", flag.ExitOnError)
+	configPath := f.String("c", "ella.json", "config file")
+	all := f.Bool("a", false, "show logs for all services")
+
+	f.Usage = func() {
+		fmt.Println("Usage:")
+		fmt.Println("  ella logs -c ella.json -a [services...]")
+		fmt.Println()
+		fmt.Println("Flags:")
+		f.PrintDefaults()
+	}
+
+	f.Parse(this.args)
+
+	var c config.Config
+
+	err := config.ReadConfig(*configPath, &c)
+	if err != nil {
+		fmt.Println("error: invalid config:", err)
+		return CODE_INVALID_CONFIG
+	}
+
+	var serviceNames []string
+	if *all {
+		var err error
+		serviceNames = make([]string, 0)
+		services, err := c.GetServices()
+		if err != nil {
+			fmt.Println("error:", err)
+			return CODE_GENERAL_ERR
+		}
+		for _, s := range services {
+			serviceNames = append(serviceNames, s.Name)
+		}
+	} else {
+		serviceNames = f.Args()
+	}
+
+	ctx := common.NewSignalCtx(context.Background())
+
+	pid, code := this.getPid(c.PidFile)
+	if code != CODE_SUCCESS {
+		return code
+	}
+	socket := SocketClient{pid}
+	err = socket.Logs(ctx, os.Stdout, serviceNames...)
+	if err != nil {
+		fmt.Println("error:", err)
+		return CODE_GENERAL_ERR
+	}
+
+	return CODE_SUCCESS
+}
+
+func (this *LogsCli) getPid(pidFile *string) (int, int) {
+	b, err := os.ReadFile(config.GetPidFile(pidFile))
+	if err != nil {
+		fmt.Println("error:", err)
+		return 0, CODE_GENERAL_ERR
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
+	if err != nil {
+		fmt.Println("error:", err)
+		return 0, CODE_GENERAL_ERR
+	}
+
+	return pid, CODE_SUCCESS
 }
 
 func main() {

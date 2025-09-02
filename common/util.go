@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
@@ -78,4 +80,51 @@ func FlushWithContext(context string, into io.Writer, from io.ReadCloser) {
 			break
 		}
 	}
+}
+
+func GetVarDir(pid int) string {
+	if uid := syscall.Getuid(); uid == 0 {
+		return fmt.Sprintf("/var/run/ella/%d", pid)
+	} else {
+		return fmt.Sprintf(
+			"/var/run/user/%d/ella/%d", uid, pid,
+		)
+	}
+}
+
+func WaitAny(
+	ctx context.Context, fns ...func(ctx context.Context) error,
+) {
+	var wg sync.WaitGroup
+	wg.Add(len(fns) + 1)
+
+	cancels := make(chan struct{})
+	subCtx, cancel := context.WithCancel(ctx)
+
+	go func() {
+		defer wg.Done()
+
+		<-cancels
+		cancel()
+
+		for i := 0; i < len(fns)-1; i++ {
+			<-cancels
+		}
+		close(cancels)
+	}()
+
+	for _, fn := range fns {
+		go func() {
+			defer wg.Done()
+
+			err := fn(subCtx)
+			if err != nil {
+				log.Println("error:", err)
+			}
+
+			cancels <- struct{}{}
+		}()
+	}
+
+	wg.Wait()
 }
