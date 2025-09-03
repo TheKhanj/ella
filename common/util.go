@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -127,4 +128,18 @@ func WaitAny(
 	}
 
 	wg.Wait()
+}
+
+func ShellEscape(arg string) string {
+	if arg == "" {
+		return "''"
+	}
+
+	safeChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_@%+=:,./-"
+	for _, r := range arg {
+		if !strings.ContainsRune(safeChars, r) {
+			return "'" + strings.ReplaceAll(arg, "'", "'\"'\"'") + "'"
+		}
+	}
+	return arg
 }

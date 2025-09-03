@@ -12,6 +12,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/google/shlex"
 	"github.com/thekhanj/ella/common"
 )
 
@@ -54,7 +55,12 @@ func (this *SocketServer) handleConnection(conn net.Conn) {
 }
 
 func (this *SocketServer) handleCommand(w io.Writer, cmdLine string) {
-	parts := strings.Split(cmdLine, " ")
+	parts, err := shlex.Split(cmdLine)
+	if err != nil {
+		fmt.Fprintf(w, "error: parsing command line failed: %s\n", err)
+		return
+	}
+
 	cmd := parts[0]
 
 	switch cmd {
@@ -117,7 +123,7 @@ func (this *SocketClient) Logs(
 	}
 	defer conn.Close()
 
-	cmd := fmt.Sprintf("logs %s\n", strings.Join(services, " "))
+	cmd := this.getCmd(services)
 	_, err = conn.Write([]byte(cmd))
 	if err != nil {
 		return err
@@ -137,6 +143,15 @@ func (this *SocketClient) Logs(
 	case <-copied:
 		return nil
 	}
+}
+
+func (this *SocketClient) getCmd(services []string) string {
+	shellEscaped := make([]string, 0)
+	for _, s := range services {
+		shellEscaped = append(shellEscaped, common.ShellEscape(s))
+	}
+
+	return fmt.Sprintf("logs %s\n", strings.Join(shellEscaped, " "))
 }
 
 func (this *SocketClient) openConn() (net.Conn, error) {
