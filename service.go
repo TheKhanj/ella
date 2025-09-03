@@ -49,7 +49,7 @@ var (
 type Service struct {
 	Name string
 
-	createProc func() *Proc
+	createProc func() (*Proc, error)
 	running    atomic.Bool
 	signals    chan ServiceSignal
 
@@ -212,7 +212,12 @@ func (this *Service) start(ctx context.Context) {
 		return
 	}
 
-	proc := this.createProc()
+	proc, err := this.createProc()
+	if err != nil {
+		log.Println("service:", err)
+		this.Signal(ServiceSigFail)
+		return
+	}
 	this.setProc(proc)
 	ch := this.wd.Watch(proc)
 
@@ -296,7 +301,7 @@ func NewService(
 	stopAction ProcAction,
 	reloadAction ProcAction,
 	watchdog Watchdog,
-	createProc func() *Proc,
+	createProc func() (*Proc, error),
 ) *Service {
 	return &Service{
 		Name: name,
@@ -348,11 +353,37 @@ func NewServiceFromConfig(cfg *config.Service) (*Service, error) {
 		return nil, err
 	}
 
+	uid, err := cfg.Process.GetUid()
+	if err != nil {
+		return nil, err
+	}
+	gid, err := cfg.Process.GetGid()
+	if err != nil {
+		return nil, err
+	}
+	env, err := cfg.Process.GetEnv()
+	if err != nil {
+		return nil, err
+	}
+
 	return NewService(
 		cfg.Name,
 		stop, reload, wd,
-		func() *Proc {
-			return NewProc(parts[0], parts[1:]...)
+		func() (*Proc, error) {
+			stdin, err := cfg.Process.GetStdin()
+			if err != nil {
+				return nil, err
+			}
+			proc := NewProc(parts[0], parts[1:]...)
+			proc.Cwd = string(cfg.Process.Cwd)
+			proc.Uid = uid
+			proc.Gid = gid
+			if stdin != nil {
+				proc.Stdin = stdin
+			}
+			proc.Env = env
+
+			return proc, nil
 		},
 	), nil
 }

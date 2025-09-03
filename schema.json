@@ -123,42 +123,47 @@
           "default": "SIGINT"
         },
         "cwd": {
-          "$ref": "#/definitions/Cwd"
+          "$ref": "#/definitions/Cwd",
+          "default": "."
         },
         "user": {
-          "$ref": "#/definitions/User"
+          "$ref": "#/definitions/User",
+          "default": "!inherit"
         },
         "group": {
-          "$ref": "#/definitions/Group"
+          "$ref": "#/definitions/Group",
+          "default": "!inherit"
         },
         "stdout": {
-          "$ref": "#/definitions/Stdout"
+          "$ref": "#/definitions/Stdout",
+          "default": true
         },
         "stderr": {
-          "$ref": "#/definitions/Stderr"
+          "$ref": "#/definitions/Stderr",
+          "default": true
         },
         "stdin": {
-          "$ref": "#/definitions/Stdin"
+          "$ref": "#/definitions/Stdin",
+          "default": null
         },
         "environments": {
-          "$ref": "#/definitions/Environments"
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Inherit",
+              "description": "Inherit all environment variables from the main process."
+            },
+            {
+              "$ref": "#/definitions/Environments"
+            }
+          ],
+          "default": {}
         },
         "watchdog": {
           "$ref": "#/definitions/Watchdog"
         }
       },
       "required": [
-        "exec",
-        "reload",
-        "stop",
-        "cwd",
-        "user",
-        "group",
-        "stdout",
-        "stderr",
-        "stdin",
-        "environments",
-        "watchdog"
+        "exec"
       ]
     },
     "ProcExec": {
@@ -260,7 +265,11 @@
     },
     "Watchdog": {
       "description": "Strategy to use for monitoring status of the service.",
-      "$ref": "#/definitions/SimpleWatchdog"
+      "oneOf": [
+        {
+          "$ref": "#/definitions/SimpleWatchdog"
+        }
+      ]
     },
     "SimpleWatchdog": {
       "type": "object",
@@ -303,35 +312,27 @@
       ]
     },
     "Environments": {
-      "oneOf": [
-        {
-          "$ref": "#/definitions/Inherit",
-          "description": "Inherit all environment variables from the main process."
-        },
-        {
-          "type": "object",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "$ref": "#/definitions/Inherit",
-                "description": "Use the value from the same key in the environment variables of the main process."
-              },
-              {
-                "type": "string",
-                "pattern": "^(?!\\!).*$",
-                "description": "Literal value to pass in."
-              },
-              {
-                "$ref": "#/definitions/LiteralEnvValue"
-              }
-            ]
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Inherit",
+            "description": "Use the value from the same key in the environment variables of the main process."
           },
-          "propertyNames": {
+          {
             "type": "string",
-            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+            "pattern": "^(?!\\!).*$",
+            "description": "Literal value to pass in."
+          },
+          {
+            "$ref": "#/definitions/LiteralEnvValue"
           }
-        }
-      ]
+        ]
+      },
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+      }
     },
     "LiteralEnvValue": {
       "type": "object",

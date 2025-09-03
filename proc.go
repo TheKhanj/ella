@@ -40,7 +40,7 @@ type Proc struct {
 	Name string
 	Args []string
 
-	Stdin io.Reader
+	Stdin io.ReadCloser
 
 	Cwd string
 	Uid uint32
@@ -156,6 +156,9 @@ func (this *Proc) Shutdown() {
 
 	this.bus.Shutdown()
 	this.setState(ProcStateBusShuttedDown)
+	if this.Stdin != nil {
+		this.Stdin.Close()
+	}
 }
 
 func (this *Proc) pipe(b *Broadcaster) io.ReadCloser {

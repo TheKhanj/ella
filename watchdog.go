@@ -19,7 +19,7 @@ type Watchdog interface {
 	Unwatch(proc *Proc)
 }
 
-func NewWatchdogFromConfig(cfg config.ProcWatchdog) (Watchdog, error) {
+func NewWatchdogFromConfig(cfg config.Watchdog) (Watchdog, error) {
 	if _, ok := cfg.(*config.SimpleWatchdog); ok {
 		return NewSimpleWatchdog(), nil
 	} else {
