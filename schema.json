@@ -46,63 +46,12 @@
         },
         "restart": {
           "$ref": "#/definitions/RestartStrategy"
-        },
-        "relations": {
-          "type": "object",
-          "propertyNames": {
-            "$ref": "#/definitions/RelationName"
-          },
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "type": "string",
-                  "description": "Service name."
-                },
-                {
-                  "$ref": "#/definitions/ServiceListDirGlob"
-                }
-              ]
-            }
-          }
         }
       },
       "required": [
         "name",
         "process",
-        "restart",
-        "relations"
-      ]
-    },
-    "ServiceListDirGlob": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "glob"
-          ]
-        },
-        "glob": {
-          "type": "string",
-          "description": "A glob pattern that identifies directories containing empty files, where each file is named after its corresponding relation service."
-        }
-      }
-    },
-    "RelationName": {
-      "type": "string",
-      "enum": [
-        "requires",
-        "wants",
-        "requisite",
-        "bindsTo",
-        "partOf",
-        "conflicts",
-        "before",
-        "after",
-        "reloadCascade"
+        "restart"
       ]
     },
     "Proc": {
