@@ -58,6 +58,7 @@ func (this *SimpleWatchdog) Watch(
 
 func (this *SimpleWatchdog) Unwatch(proc *Proc) {
 	states := this.getStates(proc)
+	// already not being watched
 	if states == nil {
 		return
 	}
