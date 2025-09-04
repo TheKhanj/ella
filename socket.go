@@ -91,15 +91,23 @@ func (this *SocketServer) showLogs(
 	for _, s := range services {
 		go func() {
 			defer wg.Done()
-			common.FlushWithContext(
-				s.Name+"(stdout)", w, s.StdoutPipe(),
-			)
+
+			stdout, err := s.StdoutPipe()
+			if err != nil {
+				return
+			}
+
+			common.FlushWithContext(s.Name+"(stdout)", w, stdout)
 		}()
 		go func() {
 			defer wg.Done()
-			common.FlushWithContext(
-				s.Name+"(stderr)", w, s.StderrPipe(),
-			)
+
+			stderr, err := s.StderrPipe()
+			if err != nil {
+				return
+			}
+
+			common.FlushWithContext(s.Name+"(stderr)", w, stderr)
 		}()
 	}
 	wg.Wait()

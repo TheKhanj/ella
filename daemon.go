@@ -14,10 +14,13 @@ import (
 	"github.com/thekhanj/ella/config"
 )
 
+// TODO: this file is becoming shit, clean it up
 type Daemon struct {
-	running  atomic.Bool
-	log      bool
-	services []*Service
+	running atomic.Bool
+	log     bool
+
+	services    []*Service
+	serviceCfgs map[string]*config.Service
 }
 
 func (this *Daemon) Service(name string) (*Service, error) {
@@ -117,13 +120,17 @@ func (this *Daemon) runAllServices(ctx context.Context) {
 }
 
 func (this *Daemon) runService(ctx context.Context, s *Service) {
-	if this.log {
-		go common.FlushWithContext(
-			s.Name, os.Stdout, s.StdoutPipe(),
-		)
-		go common.FlushWithContext(
-			s.Name, os.Stderr, s.StderrPipe(),
-		)
+	if this.log && this.serviceCfgs[s.Name].Process.Stdout == true {
+		stdout, err := s.StdoutPipe()
+		if err == nil {
+			go common.FlushWithContext("daemon: "+s.Name, os.Stdout, stdout)
+		}
+	}
+	if this.log && this.serviceCfgs[s.Name].Process.Stderr == true {
+		stderr, err := s.StderrPipe()
+		if err == nil {
+			go common.FlushWithContext("daemon: "+s.Name, os.Stderr, stderr)
+		}
 	}
 
 	err := s.Run(ctx, func() {
@@ -145,6 +152,7 @@ func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {
 
 		return nil, CODE_INVALID_CONFIG
 	}
+	this.serviceCfgs = make(map[string]*config.Service)
 	services := make([]*Service, 0)
 	for _, cfg := range serviceCfgs {
 		s, err := NewServiceFromConfig(cfg)
@@ -153,6 +161,7 @@ func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {
 			return nil, CODE_INITIALIZATION_FAILED
 		}
 		services = append(services, s)
+		this.serviceCfgs[cfg.Name] = cfg
 	}
 
 	return services, CODE_SUCCESS
