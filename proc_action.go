@@ -16,12 +16,12 @@ type ProcAction interface {
 	Exec(proc *Proc) error
 }
 
-type StopProcActionSignal struct {
+type StopSignalProcAction struct {
 	timeout time.Duration
 	signal  syscall.Signal
 }
 
-func (this *StopProcActionSignal) Exec(proc *Proc) error {
+func (this *StopSignalProcAction) Exec(proc *Proc) error {
 	states := proc.Sub()
 	defer proc.Unsub(states)
 
@@ -65,12 +65,12 @@ func NewStopProcActionFromConfig(cfg config.StopProcAction) (ProcAction, error) 
 		if err != nil {
 			return nil, err
 		}
-		return &StopProcActionSignal{
+		return &StopSignalProcAction{
 			timeout: timeout,
 			signal:  stop.Code.GetSignal(),
 		}, nil
 	} else if signal, ok := cfg.(config.ProcActionSignalCode); ok {
-		return &StopProcActionSignal{
+		return &StopSignalProcAction{
 			timeout: time.Second * 10,
 			signal:  signal.GetSignal(),
 		}, nil
@@ -79,13 +79,13 @@ func NewStopProcActionFromConfig(cfg config.StopProcAction) (ProcAction, error) 
 	}
 }
 
-var _ (ProcAction) = (*StopProcActionSignal)(nil)
+var _ (ProcAction) = (*StopSignalProcAction)(nil)
 
-type ReloadProcActionSignal struct {
+type ReloadSignalProcAction struct {
 	signal syscall.Signal
 }
 
-func (this *ReloadProcActionSignal) Exec(proc *Proc) error {
+func (this *ReloadSignalProcAction) Exec(proc *Proc) error {
 	process, err := proc.GetProcess()
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func (this *ReloadProcActionSignal) Exec(proc *Proc) error {
 
 func NewReloadProcActionFromConfig(cfg config.ReloadProcAction) (ProcAction, error) {
 	if signal, ok := cfg.(config.ProcActionSignalCode); ok {
-		return &ReloadProcActionSignal{
+		return &ReloadSignalProcAction{
 			signal: signal.GetSignal(),
 		}, nil
 	} else {
@@ -104,4 +104,4 @@ func NewReloadProcActionFromConfig(cfg config.ReloadProcAction) (ProcAction, err
 	}
 }
 
-var _ (ProcAction) = (*ReloadProcActionSignal)(nil)
+var _ (ProcAction) = (*ReloadSignalProcAction)(nil)

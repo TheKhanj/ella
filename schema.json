@@ -128,7 +128,7 @@
           "$ref": "#/definitions/ProcActionExec"
         },
         {
-          "$ref": "#/definitions/StopProcActionSignal"
+          "$ref": "#/definitions/StopSignalProcAction"
         }
       ]
     },
