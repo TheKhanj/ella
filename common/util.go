@@ -13,14 +13,48 @@ import (
 	"syscall"
 )
 
-func WaitFor[T comparable](ch <-chan T, val T) bool {
+func WaitFor[T comparable](ch <-chan T, close func(), vals ...T) *T {
+	return WaitForFn(ch, close, func(curr T) bool {
+		for _, v := range vals {
+			if v == curr {
+				return true
+			}
+		}
+
+		return false
+	})
+}
+
+func WaitForFn[T any](ch <-chan T, close func(), fn func(T) bool) *T {
+	defer func() {
+		go func() {
+			for range ch {
+			}
+		}()
+		close()
+	}()
+
 	for curr := range ch {
-		if curr == val {
-			return true
+		if fn(curr) {
+			return &curr
 		}
 	}
 
-	return false
+	return nil
+}
+
+func ChWithInitial[T any](ch chan T, initial T) chan T {
+	ret := make(chan T)
+
+	go func() {
+		ret <- initial
+
+		for v := range ch {
+			ret <- v
+		}
+	}()
+
+	return ret
 }
 
 func NewSignalCtx(
