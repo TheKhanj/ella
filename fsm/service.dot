@@ -32,5 +32,4 @@ digraph service_states {
 	// Reload transition
 	active       -> reloading    [label="reload"];
 	reloading    -> active       [label="reload done"];
-	reloading    -> failed       [label="fail (watchdog)"];
 }
