@@ -15,7 +15,7 @@ import (
 	"github.com/google/shlex"
 )
 
-//go:generate stringer -type=ServiceSignal
+//go:generate stringer -type=ProcState
 type ProcState int
 
 const (
