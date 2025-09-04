@@ -23,8 +23,6 @@ type StopSignalProcAction struct {
 
 func (this *StopSignalProcAction) Exec(proc *Proc) error {
 	states := proc.Sub()
-	defer proc.Unsub(states)
-
 	process, err := proc.GetProcess()
 	if err != nil {
 		return err
@@ -39,10 +37,10 @@ func (this *StopSignalProcAction) Exec(proc *Proc) error {
 	go func() {
 		defer close(stopped)
 
-		neverStopped := !common.WaitFor(states, ProcStateStopped)
-		if neverStopped {
-			panic(ProcActionErrNeverStopped)
-		}
+		common.WaitFor(
+			states, func() { proc.Unsub(states) },
+			ProcStateStopped,
+		)
 	}()
 
 	select {
