@@ -17,6 +17,8 @@ type ProcAction interface {
 }
 
 type StopSignalProcAction struct {
+	// TODO: don't forget to add this for exec proc action...
+	// createProc CreateProc
 	timeout time.Duration
 	signal  syscall.Signal
 }
@@ -58,7 +60,7 @@ func (this *StopSignalProcAction) Exec(proc *Proc) error {
 }
 
 func NewStopProcActionFromConfig(cfg config.StopProcAction) (ProcAction, error) {
-	if stop, ok := cfg.(*config.StopProcActionSignal); ok {
+	if stop, ok := cfg.(*config.StopSignalProcAction); ok {
 		timeout, err := time.ParseDuration(string(stop.Timeout))
 		if err != nil {
 			return nil, err
