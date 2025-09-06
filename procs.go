@@ -98,14 +98,15 @@ func (this *Procs) pipe(
 }
 
 func NewProcs() *Procs {
-	running := atomic.Bool{}
-	running.Store(true)
-
-	return &Procs{
+	ret := &Procs{
 		mu:   sync.RWMutex{},
 		last: nil,
 
 		procs:   pubsub.New[int, *Proc](0),
-		running: running,
+		running: atomic.Bool{},
 	}
+
+	ret.running.Store(true)
+
+	return ret
 }
