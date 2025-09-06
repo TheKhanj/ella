@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -79,7 +80,9 @@ func NewSignalCtx(
 }
 
 // chatgpt generated
-func FlushWithContext(context string, into io.Writer, from io.ReadCloser) {
+func FlushWithContext(
+	context string, into io.Writer, from io.ReadCloser,
+) {
 	defer from.Close()
 
 	var buf bytes.Buffer
@@ -115,6 +118,45 @@ func FlushWithContext(context string, into io.Writer, from io.ReadCloser) {
 			break
 		}
 	}
+}
+
+// chatgpt generated
+func StreamLines(readClosers ...io.ReadCloser) io.ReadCloser {
+	pr, pw := io.Pipe()
+
+	go func() {
+		var wg sync.WaitGroup
+		ch := make(chan string)
+
+		for _, r := range readClosers {
+			wg.Add(1)
+			go func(r io.ReadCloser) {
+				defer wg.Done()
+				defer r.Close()
+				scanner := bufio.NewScanner(r)
+				for scanner.Scan() {
+					ch <- scanner.Text()
+				}
+			}(r)
+		}
+
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+
+		for line := range ch {
+			_, err := fmt.Fprintln(pw, line)
+			if err != nil {
+				pw.CloseWithError(err)
+				return
+			}
+		}
+
+		pw.Close()
+	}()
+
+	return pr
 }
 
 func GetVarDir(pid int) string {

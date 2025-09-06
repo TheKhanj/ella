@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -120,20 +121,31 @@ func (this *Daemon) runAllServices(ctx context.Context) {
 }
 
 func (this *Daemon) runService(ctx context.Context, s *Service) {
-	// TODO: handle logs
-	// if this.log && this.serviceCfgs[s.Name].Process.Stdout == true {
-	// 	stdout, err := s.StdoutPipe()
-	// 	if err == nil {
-	// 		go common.FlushWithContext("daemon: "+s.Name, os.Stdout, stdout)
-	// 	}
-	// }
-	// if this.log && this.serviceCfgs[s.Name].Process.Stderr == true {
-	// 	stderr, err := s.StderrPipe()
-	// 	if err == nil {
-	// 		go common.FlushWithContext("daemon: "+s.Name, os.Stderr, stderr)
-	// 	}
-	// }
+	var wg sync.WaitGroup
+	if this.log {
+		wg.Add(1)
+
+		logs := s.Logs()
+		go func() {
+			<-ctx.Done()
+
+			defer logs.Close()
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			_, err := io.Copy(os.Stdout, logs)
+			if err != nil {
+				log.Println("daemon:", err)
+			}
+		}()
+	}
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		err := s.Start()
 		if err != nil {
 			log.Println("error:", err)
@@ -141,6 +153,7 @@ func (this *Daemon) runService(ctx context.Context, s *Service) {
 	}()
 
 	s.Run(ctx)
+	wg.Wait()
 }
 
 func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {

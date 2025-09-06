@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/google/shlex"
@@ -86,34 +85,15 @@ func (this *SocketServer) showLogs(
 		services = append(services, s)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(services) * 2)
-	for range services {
-		go func() {
-			defer wg.Done()
-
-			// TODO: handle logs
-			// stdout, err := s.StdoutPipe()
-			// if err != nil {
-			// 	return
-			// }
-
-			// common.FlushWithContext(s.Name+"(stdout)", w, stdout)
-		}()
-		go func() {
-			defer wg.Done()
-
-			// TODO: handle logs
-			// stderr, err := s.StderrPipe()
-			// if err != nil {
-			// 	return
-			// }
-
-			// common.FlushWithContext(s.Name+"(stderr)", w, stderr)
-		}()
+	readers := make([]io.ReadCloser, 0)
+	for _, s := range services {
+		readers = append(readers, s.Logs())
 	}
-	wg.Wait()
-	return nil
+	logs := common.StreamLines(readers...)
+	defer logs.Close()
+
+	_, err := io.Copy(w, logs)
+	return err
 }
 
 func (this *SocketServer) getSocketPath() string {

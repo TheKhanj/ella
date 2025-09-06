@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"sync"
 	"sync/atomic"
 
 	"github.com/cskr/pubsub/v2"
+	"github.com/thekhanj/ella/common"
 	"github.com/thekhanj/ella/config"
 )
 
@@ -38,6 +41,11 @@ type Service struct {
 	Name     string
 	Watchdog Watchdog
 
+	logB      *Broadcaster
+	logStdout bool
+	logStderr bool
+	log       *log.Logger
+
 	running atomic.Bool
 	state   atomic.Int32
 	bus     *pubsub.PubSub[int, ServiceState]
@@ -48,7 +56,28 @@ type Service struct {
 }
 
 func (this *Service) Run(ctx context.Context) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	r, w := io.Pipe()
+
+	this.log = log.New(
+		w, fmt.Sprintf("service(%s): ", this.Name), log.LstdFlags,
+	)
+
+	go func() {
+		defer wg.Done()
+		defer w.Close()
+
+		err := this.logB.Run(r)
+		if err != nil {
+			log.Printf("service(%s): logger stopped: %s", this.Name, err)
+		}
+	}()
+
 	<-ctx.Done()
+	r.Close()
+	wg.Wait()
 	if this.Watchdog != nil {
 		this.Watchdog.Procs().Shutdown()
 	}
@@ -89,16 +118,32 @@ func (this *Service) Restart() error {
 	return this.start()
 }
 
+func (this *Service) Logs() io.ReadCloser {
+	r, w := io.Pipe()
+	this.logB.Add(w)
+
+	readers := []io.ReadCloser{r}
+	var stdout, stderr io.ReadCloser = nil, nil
+	if this.logStdout {
+		stdout = this.Watchdog.Procs().StdoutPipe()
+		readers = append(readers, stdout)
+	}
+	if this.logStderr {
+		stderr = this.Watchdog.Procs().StderrPipe()
+		readers = append(readers, stderr)
+	}
+
+	return common.StreamLines(readers...)
+}
+
 func (this *Service) GetState() ServiceState {
 	return ServiceState(this.state.Load())
 }
 
-// TODO: implement logs method and use it
-
 func (this *Service) setState(state ServiceState) {
 	this.state.Store(int32(state))
 	go this.bus.Pub(state, 0)
-	log.Printf("service(%s): state: %s", this.Name, state)
+	this.log.Printf("state: %s", state)
 }
 
 func (this *Service) handleWatchdogSignals(
@@ -226,10 +271,16 @@ func (this *Service) fail() {
 func NewService(
 	name string,
 	watchdog Watchdog,
+	logStdout, logStderr bool,
 ) *Service {
 	return &Service{
 		Name:     name,
 		Watchdog: watchdog,
+
+		logB:      NewBroadcaster(),
+		logStdout: logStdout,
+		logStderr: logStderr,
+		log:       nil,
 
 		running: atomic.Bool{},
 		state:   atomic.Int32{},
@@ -307,5 +358,9 @@ func NewServiceFromConfig(cfg *config.Service) (*Service, error) {
 		return nil, err
 	}
 
-	return NewService(cfg.Name, wd), nil
+	return NewService(
+		cfg.Name, wd,
+		// TODO: handle target files...
+		bool(cfg.Process.Stdout), bool(cfg.Process.Stderr),
+	), nil
 }
