@@ -120,28 +120,27 @@ func (this *Daemon) runAllServices(ctx context.Context) {
 }
 
 func (this *Daemon) runService(ctx context.Context, s *Service) {
-	if this.log && this.serviceCfgs[s.Name].Process.Stdout == true {
-		stdout, err := s.StdoutPipe()
-		if err == nil {
-			go common.FlushWithContext("daemon: "+s.Name, os.Stdout, stdout)
-		}
-	}
-	if this.log && this.serviceCfgs[s.Name].Process.Stderr == true {
-		stderr, err := s.StderrPipe()
-		if err == nil {
-			go common.FlushWithContext("daemon: "+s.Name, os.Stderr, stderr)
-		}
-	}
-
-	err := s.Run(ctx, func() {
-		err := s.Signal(ServiceSigStart)
+	// TODO: handle logs
+	// if this.log && this.serviceCfgs[s.Name].Process.Stdout == true {
+	// 	stdout, err := s.StdoutPipe()
+	// 	if err == nil {
+	// 		go common.FlushWithContext("daemon: "+s.Name, os.Stdout, stdout)
+	// 	}
+	// }
+	// if this.log && this.serviceCfgs[s.Name].Process.Stderr == true {
+	// 	stderr, err := s.StderrPipe()
+	// 	if err == nil {
+	// 		go common.FlushWithContext("daemon: "+s.Name, os.Stderr, stderr)
+	// 	}
+	// }
+	go func() {
+		err := s.Start()
 		if err != nil {
 			log.Println("error:", err)
 		}
-	})
-	if err != nil {
-		log.Println("error:", err)
-	}
+	}()
+
+	s.Run(ctx)
 }
 
 func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {

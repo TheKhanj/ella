@@ -88,26 +88,28 @@ func (this *SocketServer) showLogs(
 
 	var wg sync.WaitGroup
 	wg.Add(len(services) * 2)
-	for _, s := range services {
+	for range services {
 		go func() {
 			defer wg.Done()
 
-			stdout, err := s.StdoutPipe()
-			if err != nil {
-				return
-			}
+			// TODO: handle logs
+			// stdout, err := s.StdoutPipe()
+			// if err != nil {
+			// 	return
+			// }
 
-			common.FlushWithContext(s.Name+"(stdout)", w, stdout)
+			// common.FlushWithContext(s.Name+"(stdout)", w, stdout)
 		}()
 		go func() {
 			defer wg.Done()
 
-			stderr, err := s.StderrPipe()
-			if err != nil {
-				return
-			}
+			// TODO: handle logs
+			// stderr, err := s.StderrPipe()
+			// if err != nil {
+			// 	return
+			// }
 
-			common.FlushWithContext(s.Name+"(stderr)", w, stderr)
+			// common.FlushWithContext(s.Name+"(stderr)", w, stderr)
 		}()
 	}
 	wg.Wait()
