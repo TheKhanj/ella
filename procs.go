@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"sync/atomic"
 
 	"github.com/cskr/pubsub/v2"
 )
@@ -15,17 +16,21 @@ type Procs struct {
 	mu   sync.RWMutex
 	last *Proc
 
-	procs *pubsub.PubSub[int, *Proc]
+	procs   *pubsub.PubSub[int, *Proc]
+	running atomic.Bool
 }
 
 func (this *Procs) Push(proc *Proc) {
-	this.procs.Pub(proc, 0)
+	if this.running.Load() {
+		this.procs.Pub(proc, 0)
+	}
 	this.mu.Lock()
 	this.last = proc
 	this.mu.Unlock()
 }
 
 func (this *Procs) Shutdown() {
+	this.running.Store(false)
 	this.procs.Shutdown()
 }
 
@@ -60,24 +65,30 @@ func (this *Procs) pipe(
 		defer w.Close()
 
 		last, err := this.Last()
-		// TODO: I'm quite sure this wouldn't handle killing the process
-		// and still receiving the new processes logs...
-		// write couple of tests for it bitch 😠
 		if err == nil {
 			_, err := io.Copy(w, getPipe(last))
 			if err != nil {
-				log.Println("service:", err)
+				log.Println("procs:", err)
 				return
 			}
 		}
 
+		if !this.running.Load() {
+			log.Println("procs: pubsub not running")
+			return
+		}
+
 		ch := this.procs.Sub(0)
-		defer this.procs.Unsub(ch)
+		defer func() {
+			if this.running.Load() {
+				this.procs.Unsub(ch)
+			}
+		}()
 
 		for proc := range ch {
 			_, err := io.Copy(w, getPipe(proc))
 			if err != nil {
-				log.Println("service:", err)
+				log.Println("procs:", err)
 				return
 			}
 		}
@@ -87,10 +98,14 @@ func (this *Procs) pipe(
 }
 
 func NewProcs() *Procs {
+	running := atomic.Bool{}
+	running.Store(true)
+
 	return &Procs{
 		mu:   sync.RWMutex{},
 		last: nil,
 
-		procs: pubsub.New[int, *Proc](0),
+		procs:   pubsub.New[int, *Proc](0),
+		running: running,
 	}
 }
