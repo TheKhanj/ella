@@ -153,13 +153,13 @@ func (this *Service) start() error {
 		return nil
 	}
 
-	r, err := this.Watchdog.Start()
+	sigs, err := this.Watchdog.Start()
 	if err != nil {
 		this.fail()
 		return err
 	}
 
-	go this.handleWatchdogSignals(r.Signals)
+	go this.handleWatchdogSignals(sigs)
 
 	return nil
 }

@@ -20,15 +20,8 @@ const (
 
 var WatchdogErrAlreadyRunning = errors.New("an active process is already running")
 
-type WatchdogRes struct {
-	// must be drained
-	Signals chan WatchdogSignal
-	// TODO: why do i need the proc??!!
-	Proc *Proc
-}
-
 type Watchdog interface {
-	Start() (*WatchdogRes, error)
+	Start() (chan WatchdogSignal, error)
 	Stop() error
 	Reload() error
 	Procs() *Procs
@@ -56,7 +49,7 @@ type SimpleWatchdog struct {
 	running atomic.Bool
 }
 
-func (this *SimpleWatchdog) Start() (*WatchdogRes, error) {
+func (this *SimpleWatchdog) Start() (chan WatchdogSignal, error) {
 	if this.running.Load() {
 		return nil, WatchdogErrAlreadyRunning
 	}
@@ -71,10 +64,7 @@ func (this *SimpleWatchdog) Start() (*WatchdogRes, error) {
 	signals := make(chan WatchdogSignal)
 	go this.run(proc, signals)
 
-	return &WatchdogRes{
-		Signals: signals,
-		Proc:    proc,
-	}, nil
+	return signals, nil
 }
 
 func (this *SimpleWatchdog) Stop() error {
