@@ -15,6 +15,8 @@ import (
 	"github.com/google/shlex"
 )
 
+type CreateProc = func(path string, args ...string) *Proc
+
 //go:generate stringer -type=ProcState
 type ProcState int
 
