@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"sync"
+	"log"
+	"sync/atomic"
 
 	"github.com/thekhanj/ella/config"
 )
@@ -11,93 +14,146 @@ type WatchdogSignal int
 
 const (
 	WatchdogSigStarted WatchdogSignal = iota
+	WatchdogSigStopped
 	WatchdogSigFailed
 )
 
-type Watchdog interface {
-	Watch(proc *Proc) chan WatchdogSignal
-	Unwatch(proc *Proc)
+var WatchdogErrAlreadyRunning = errors.New("an active process is already running")
+
+type WatchdogRes struct {
+	// must be drained
+	Signals chan WatchdogSignal
+	// TODO: why do i need the proc??!!
+	Proc *Proc
 }
 
-func NewWatchdogFromConfig(cfg config.Watchdog) (Watchdog, error) {
+type Watchdog interface {
+	Start() (*WatchdogRes, error)
+	Stop() error
+	Reload() error
+	Procs() *Procs
+}
+
+func NewWatchdogFromConfig(
+	cfg config.Watchdog,
+	exec func() (*Proc, error),
+	stop, reload ProcAction,
+) (Watchdog, error) {
+	// TODO: make this watchdog config simpler, no need for this complexity
 	if _, ok := cfg.(*config.SimpleWatchdog); ok {
-		return NewSimpleWatchdog(), nil
+		return NewSimpleWatchdog(exec, stop, reload), nil
 	} else {
 		return nil, fmt.Errorf("invalid watchdog config: %v", cfg)
 	}
 }
 
 type SimpleWatchdog struct {
-	mu    sync.RWMutex
-	procs map[*Proc]chan ProcState
+	procs  *Procs
+	exec   func() (*Proc, error)
+	stop   ProcAction
+	reload ProcAction
+
+	running atomic.Bool
 }
 
-func (this *SimpleWatchdog) Watch(
-	proc *Proc,
-) chan WatchdogSignal {
+func (this *SimpleWatchdog) Start() (*WatchdogRes, error) {
+	if this.running.Load() {
+		return nil, WatchdogErrAlreadyRunning
+	}
+	proc, err := this.exec()
+	if err != nil {
+		return nil, err
+	}
+
+	this.running.Store(true)
+	go this.procs.Push(proc)
+
+	signals := make(chan WatchdogSignal)
+	go this.run(proc, signals)
+
+	return &WatchdogRes{
+		Signals: signals,
+		Proc:    proc,
+	}, nil
+}
+
+func (this *SimpleWatchdog) Stop() error {
+	proc, err := this.procs.Last()
+	if err != nil {
+		return err
+	}
+
+	return this.stop.Exec(proc)
+}
+
+func (this *SimpleWatchdog) Reload() error {
+	proc, err := this.procs.Last()
+	if err != nil {
+		return err
+	}
+
+	return this.reload.Exec(proc)
+}
+
+func (this *SimpleWatchdog) Procs() *Procs {
+	return this.procs
+}
+
+func (this *SimpleWatchdog) run(
+	proc *Proc, signals chan WatchdogSignal,
+) {
 	states := proc.Sub()
-	ch := make(chan WatchdogSignal)
-	this.setStates(proc, states)
+	defer func() {
+		proc.Unsub(states)
+		close(signals)
+		this.running.Store(false)
+	}()
 
 	go func() {
-		defer close(ch)
-
-		for state := range states {
-			if state == ProcStateStarted {
-				ch <- WatchdogSigStarted
-			}
-			if state == ProcStateStopped {
-				ch <- WatchdogSigFailed
-				this.Unwatch(proc)
-			}
+		err := proc.Run(context.Background())
+		if err != nil {
+			log.Println("watchdog: process:", err)
 		}
 	}()
 
-	return ch
-}
+	for state := range states {
+		if state == ProcStateStarted {
+			// TODO: think about coroutine or not
+			this.signal(signals, WatchdogSigStarted)
+		}
+		if state == ProcStateStopped {
+			code, err := proc.GetExitCode()
+			if err != nil {
+				panic("unreachable code")
+			}
 
-func (this *SimpleWatchdog) Unwatch(proc *Proc) {
-	states := this.getStates(proc)
-	// already not being watched
-	if states == nil {
-		return
+			if code == 0 {
+				this.signal(signals, WatchdogSigStopped)
+			} else {
+				this.signal(signals, WatchdogSigFailed)
+			}
+		}
 	}
-
-	proc.Unsub(states)
-	this.unsetStates(proc)
 }
 
-func (this *SimpleWatchdog) setStates(proc *Proc, states chan ProcState) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	this.procs[proc] = states
-}
-
-func (this *SimpleWatchdog) getStates(proc *Proc) chan ProcState {
-	this.mu.RLock()
-	defer this.mu.RUnlock()
-
-	states, ok := this.procs[proc]
-	if !ok {
-		return nil
-	}
-
-	return states
-}
-
-func (this *SimpleWatchdog) unsetStates(proc *Proc) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	delete(this.procs, proc)
+func (this *SimpleWatchdog) signal(
+	sigs chan WatchdogSignal, sig WatchdogSignal,
+) {
+	sigs <- sig
 }
 
 var _ Watchdog = (*SimpleWatchdog)(nil)
 
-func NewSimpleWatchdog() *SimpleWatchdog {
+func NewSimpleWatchdog(
+	exec func() (*Proc, error),
+	stop, reload ProcAction,
+) *SimpleWatchdog {
 	return &SimpleWatchdog{
-		mu:    sync.RWMutex{},
-		procs: make(map[*Proc]chan ProcState),
+		procs:  NewProcs(),
+		exec:   exec,
+		stop:   stop,
+		reload: reload,
+
+		running: atomic.Bool{},
 	}
 }
