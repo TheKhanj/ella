@@ -20,6 +20,9 @@ type Procs struct {
 
 func (this *Procs) Push(proc *Proc) {
 	this.procs.Pub(proc, 0)
+	this.mu.Lock()
+	this.last = proc
+	this.mu.Unlock()
 }
 
 func (this *Procs) Shutdown() {
