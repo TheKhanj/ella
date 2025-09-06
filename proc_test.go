@@ -19,7 +19,7 @@ type ProcPipesTest struct {
 
 func (this *ProcPipesTest) Run() {
 	p := NewProc(this.shell)
-	p.Stdin = strings.NewReader(this.script)
+	p.Stdin = io.NopCloser(strings.NewReader(this.script))
 	stdout := p.StdoutPipe()
 	defer stdout.Close()
 	stderr := p.StderrPipe()
@@ -80,7 +80,7 @@ type ProcStatesTest struct {
 
 func (this *ProcStatesTest) Run() {
 	p := NewProc(this.shell)
-	p.Stdin = strings.NewReader(this.script)
+	p.Stdin = io.NopCloser(strings.NewReader(this.script))
 
 	ctx, cancel := context.WithTimeout(this.t.Context(), this.timeout)
 	defer cancel()
