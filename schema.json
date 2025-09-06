@@ -166,7 +166,7 @@
         "SIGTTOU"
       ]
     },
-    "StopProcActionSignal": {
+    "StopSignalProcAction": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

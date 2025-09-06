@@ -18,7 +18,7 @@ func (this *Proc) GetStop() (StopProcAction, error) {
 	} else if m, ok := stop.(map[string]any); ok {
 		switch m["type"] {
 		case "signal":
-			var c StopProcActionSignal
+			var c StopSignalProcAction
 			b, err := json.Marshal(stop)
 			if err != nil {
 				return nil, err
