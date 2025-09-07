@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -43,14 +42,8 @@ func (this *Daemon) Run(
 
 	this.running.Store(true)
 
-	err := this.checkServicesToExist(c, starts)
-	if err != nil {
-		fmt.Println("error:", err)
-		return CODE_INVALID_CONFIG
-	}
-
 	pidFile := config.GetPidFile(c.PidFile)
-	err = this.writePid(pidFile)
+	err := this.writePid(pidFile)
 	if err != nil {
 		fmt.Println("error: failed creating pid file:", err)
 		return CODE_INITIALIZATION_FAILED
@@ -60,6 +53,12 @@ func (this *Daemon) Run(
 	this.services, code = this.getServices(c)
 	if code != CODE_SUCCESS {
 		return code
+	}
+
+	err = this.checkServicesToExist(c, starts)
+	if err != nil {
+		fmt.Println("error:", err)
+		return CODE_INVALID_CONFIG
 	}
 
 	socket := SocketServer{this.Service}
@@ -109,14 +108,9 @@ func (this *Daemon) checkServicesToExist(
 	cfg *config.Config, services []string,
 ) error {
 	for _, serviceName := range services {
-		exist := slices.ContainsFunc(
-			cfg.Services, func(s config.Service) bool {
-				return s.Name == serviceName
-			},
-		)
-
-		if !exist {
-			return fmt.Errorf("service %s does not exist", serviceName)
+		_, err := this.Service(serviceName)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -130,11 +124,11 @@ func (this *Daemon) startServices(ctx context.Context, services []string) {
 		go func() {
 			defer wg.Done()
 
-			// this is shit but i'm too dumb right now to do anything about it
-			index := slices.IndexFunc(this.services, func(service *Service) bool {
-				return service.Name == sName
-			})
-			this.runService(ctx, this.services[index])
+			service, err := this.Service(sName)
+			if err != nil {
+				panic("unreachable code")
+			}
+			this.runService(ctx, service)
 		}()
 	}
 	wg.Wait()

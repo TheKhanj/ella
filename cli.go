@@ -71,6 +71,18 @@ func (this *Cli) Exec() int {
 	case "logs":
 		c := LogsCli{args: f.Args()[1:]}
 		return c.Exec()
+	case "start":
+		c := StartCli{args: f.Args()[1:]}
+		return c.Exec()
+	case "stop":
+		c := StopCli{args: f.Args()[1:]}
+		return c.Exec()
+	case "restart":
+		c := RestartCli{args: f.Args()[1:]}
+		return c.Exec()
+	case "reload":
+		c := ReloadCli{args: f.Args()[1:]}
+		return c.Exec()
 	default:
 		fmt.Printf("error: invalid command \"%s\"\n", cmd)
 		return CODE_INVALID_INVOKATION
@@ -121,24 +133,40 @@ func (this *RunCli) Exec() int {
 	return d.Run(ctx, &c, serviceNames)
 }
 
-type LogsCli struct {
-	args []string
+func getDaemonPid(pidFile *string) (int, int) {
+	b, err := os.ReadFile(config.GetPidFile(pidFile))
+	if err != nil {
+		fmt.Println("error:", err)
+		return 0, CODE_GENERAL_ERR
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
+	if err != nil {
+		fmt.Println("error:", err)
+		return 0, CODE_GENERAL_ERR
+	}
+
+	return pid, CODE_SUCCESS
 }
 
-func (this *LogsCli) Exec() int {
+func runCliAction(
+	args []string,
+	action string,
+	allMsg string,
+) int {
 	f := flag.NewFlagSet("ella", flag.ExitOnError)
 	configPath := f.String("c", "ella.json", "config file")
-	all := f.Bool("a", false, "show logs for all services")
+	all := f.Bool("a", false, allMsg)
 
 	f.Usage = func() {
 		fmt.Println("Usage:")
-		fmt.Println("  ella logs -c ella.json -a [services...]")
+		fmt.Printf("  ella %s -c ella.json -a\n", action)
+		fmt.Printf("  ella %s -c ella.json [services...]\n", action)
 		fmt.Println()
 		fmt.Println("Flags:")
 		f.PrintDefaults()
 	}
 
-	f.Parse(this.args)
+	f.Parse(args)
 
 	var c config.Config
 
@@ -164,12 +192,12 @@ func (this *LogsCli) Exec() int {
 
 	ctx := common.NewSignalCtx(context.Background())
 
-	pid, code := this.getPid(c.PidFile)
+	pid, code := getDaemonPid(c.PidFile)
 	if code != CODE_SUCCESS {
 		return code
 	}
 	socket := SocketClient{pid}
-	err = socket.Logs(ctx, os.Stdout, serviceNames...)
+	err = socket.Action(ctx, os.Stdout, action, serviceNames...)
 	if err != nil {
 		fmt.Println("error:", err)
 		return CODE_GENERAL_ERR
@@ -178,19 +206,44 @@ func (this *LogsCli) Exec() int {
 	return CODE_SUCCESS
 }
 
-func (this *LogsCli) getPid(pidFile *string) (int, int) {
-	b, err := os.ReadFile(config.GetPidFile(pidFile))
-	if err != nil {
-		fmt.Println("error:", err)
-		return 0, CODE_GENERAL_ERR
-	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
-	if err != nil {
-		fmt.Println("error:", err)
-		return 0, CODE_GENERAL_ERR
-	}
+type LogsCli struct {
+	args []string
+}
 
-	return pid, CODE_SUCCESS
+func (this *LogsCli) Exec() int {
+	return runCliAction(this.args, "logs", "show logs for all services")
+}
+
+type StartCli struct {
+	args []string
+}
+
+func (this *StartCli) Exec() int {
+	return runCliAction(this.args, "start", "start all services")
+}
+
+type StopCli struct {
+	args []string
+}
+
+func (this *StopCli) Exec() int {
+	return runCliAction(this.args, "stop", "stop all services")
+}
+
+type RestartCli struct {
+	args []string
+}
+
+func (this *RestartCli) Exec() int {
+	return runCliAction(this.args, "restart", "restart all services")
+}
+
+type ReloadCli struct {
+	args []string
+}
+
+func (this *ReloadCli) Exec() int {
+	return runCliAction(this.args, "reload", "reload all services")
 }
 
 func main() {
