@@ -65,7 +65,7 @@
         "stop": {
           "$ref": "#/definitions/StopProcAction",
           "description": "Action to do on the process when receiving stop signal.",
-          "default": "SIGINT"
+          "default": "SIGTERM"
         },
         "cwd": {
           "$ref": "#/definitions/Cwd",

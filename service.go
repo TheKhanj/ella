@@ -203,7 +203,7 @@ func (this *Service) start() error {
 	if !this.GetState().IsStopped() {
 		return ServiceErrAlreadyRunning
 	}
-	this.log.Printf("starting")
+	this.log.Print("starting")
 
 	this.setState(ServiceStateActivating)
 
@@ -224,7 +224,7 @@ func (this *Service) start() error {
 }
 
 func (this *Service) startDone() {
-	this.log.Printf("started")
+	this.log.Print("started")
 	this.setState(ServiceStateActive)
 }
 
@@ -232,7 +232,7 @@ func (this *Service) stop() error {
 	if this.GetState().IsStopped() {
 		return ServiceErrAlreadyStopped
 	}
-	this.log.Printf("stopping")
+	this.log.Print("stopping")
 
 	this.setState(ServiceStateDeactivating)
 
@@ -252,7 +252,7 @@ func (this *Service) stop() error {
 }
 
 func (this *Service) stopDone() {
-	this.log.Printf("stopped")
+	this.log.Print("stopped")
 	this.setState(ServiceStateInactive)
 }
 
@@ -260,7 +260,7 @@ func (this *Service) reload() error {
 	if this.GetState() != ServiceStateActive {
 		return ServiceErrNotActive
 	}
-	this.log.Printf("reloading")
+	this.log.Print("reloading")
 
 	this.setState(ServiceStateReloading)
 
@@ -279,12 +279,12 @@ func (this *Service) reload() error {
 }
 
 func (this *Service) reloadDone() {
-	this.log.Printf("reloaded")
+	this.log.Print("reloaded")
 	this.setState(ServiceStateActive)
 }
 
 func (this *Service) fail() {
-	this.log.Printf("failed")
+	this.log.Print("failed")
 	this.setState(ServiceStateFailed)
 }
 
