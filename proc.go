@@ -156,8 +156,8 @@ func (this *Proc) Shutdown() {
 		return
 	}
 
-	this.bus.Shutdown()
 	this.setState(ProcStateBusShuttedDown)
+	this.bus.Shutdown()
 	if this.Stdin != nil {
 		this.Stdin.Close()
 	}
