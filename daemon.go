@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -68,7 +69,7 @@ func (this *Daemon) Run(
 		return CODE_GENERAL_ERR
 	}
 
-	go this.startServices(ctx, starts)
+	go this.runServices(ctx, starts)
 
 	common.WaitAny(
 		ctx,
@@ -117,24 +118,24 @@ func (this *Daemon) checkServicesToExist(
 	return nil
 }
 
-func (this *Daemon) startServices(ctx context.Context, services []string) {
+func (this *Daemon) runServices(
+	ctx context.Context, starts []string,
+) {
 	var wg sync.WaitGroup
-	wg.Add(len(services))
-	for _, sName := range services {
+	wg.Add(len(this.services))
+	for _, s := range this.services {
 		go func() {
 			defer wg.Done()
 
-			service, err := this.Service(sName)
-			if err != nil {
-				panic("unreachable code")
-			}
-			this.runService(ctx, service)
+			this.runService(ctx, s, slices.Contains(starts, s.Name))
 		}()
 	}
 	wg.Wait()
 }
 
-func (this *Daemon) runService(ctx context.Context, s *Service) {
+func (this *Daemon) runService(
+	ctx context.Context, s *Service, start bool,
+) {
 	var wg sync.WaitGroup
 	if this.log {
 		wg.Add(1)
@@ -156,15 +157,17 @@ func (this *Daemon) runService(ctx context.Context, s *Service) {
 		}()
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	if start {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		err := s.Start()
-		if err != nil {
-			fmt.Println("error:", err)
-		}
-	}()
+			err := s.Start()
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+		}()
+	}
 
 	s.Run(ctx)
 	wg.Wait()
