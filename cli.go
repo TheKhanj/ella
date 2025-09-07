@@ -32,18 +32,18 @@ func (this *Cli) Exec() int {
 	version := f.Bool("v", false, "show version")
 
 	f.Usage = func() {
-		fmt.Println("Usage:")
-		fmt.Println("  ella -h")
-		fmt.Println()
-		fmt.Println("Available Commands:")
-		fmt.Println("  run       Run the daemon")
-		fmt.Println("  logs      Run the daemon")
-		fmt.Println("  start     Start services")
-		fmt.Println("  stop      Stop services")
-		fmt.Println("  restart   Restart services")
-		fmt.Println("  reload    Reload services")
-		fmt.Println()
-		fmt.Println("Flags:")
+		fmt.Fprintln(os.Stderr, "Usage:")
+		fmt.Fprintln(os.Stderr, "  ella -h")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Available Commands:")
+		fmt.Fprintln(os.Stderr, "  run       Run the daemon")
+		fmt.Fprintln(os.Stderr, "  logs      Run the daemon")
+		fmt.Fprintln(os.Stderr, "  start     Start services")
+		fmt.Fprintln(os.Stderr, "  stop      Stop services")
+		fmt.Fprintln(os.Stderr, "  restart   Restart services")
+		fmt.Fprintln(os.Stderr, "  reload    Reload services")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Flags:")
 		f.PrintDefaults()
 	}
 
@@ -63,7 +63,7 @@ func (this *Cli) Exec() int {
 
 	if len(f.Args()) == 0 {
 		f.Usage()
-		fmt.Println("error: not enough arguments")
+		fmt.Fprintln(os.Stderr, "error: not enough arguments")
 
 		return CODE_INVALID_INVOKATION
 	}
@@ -89,7 +89,7 @@ func (this *Cli) Exec() int {
 		c := ReloadCli{args: f.Args()[1:]}
 		return c.Exec()
 	default:
-		fmt.Printf("error: invalid command \"%s\"\n", cmd)
+		fmt.Fprintf(os.Stderr, "error: invalid command \"%s\"\n", cmd)
 		return CODE_INVALID_INVOKATION
 	}
 }
@@ -105,10 +105,10 @@ func (this *RunCli) Exec() int {
 	all := f.Bool("a", false, "start all services")
 
 	f.Usage = func() {
-		fmt.Println("Usage:")
-		fmt.Println("  ella run -c ella.json [services...]")
-		fmt.Println()
-		fmt.Println("Flags:")
+		fmt.Fprintln(os.Stderr, "Usage:")
+		fmt.Fprintln(os.Stderr, "  ella run -c ella.json [services...]")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Flags:")
 		f.PrintDefaults()
 	}
 
@@ -122,7 +122,7 @@ func (this *RunCli) Exec() int {
 	var c config.Config
 	err := config.ReadParsedConfig(*cfgPath, &c)
 	if err != nil {
-		fmt.Println("error: invalid config:", err)
+		fmt.Fprintln(os.Stderr, "error: invalid config:", err)
 		return CODE_INVALID_CONFIG
 	}
 
@@ -141,12 +141,12 @@ func (this *RunCli) Exec() int {
 func getDaemonPid(pidFile *string) (int, int) {
 	b, err := os.ReadFile(config.GetPidFile(pidFile))
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Fprintln(os.Stderr, "error:", err)
 		return 0, CODE_GENERAL_ERR
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Fprintln(os.Stderr, "error:", err)
 		return 0, CODE_GENERAL_ERR
 	}
 
@@ -163,11 +163,11 @@ func runCliAction(
 	all := f.Bool("a", false, allMsg)
 
 	f.Usage = func() {
-		fmt.Println("Usage:")
-		fmt.Printf("  ella %s -c ella.json -a\n", action)
-		fmt.Printf("  ella %s -c ella.json [services...]\n", action)
-		fmt.Println()
-		fmt.Println("Flags:")
+		fmt.Fprintln(os.Stderr, "Usage:")
+		fmt.Fprintf(os.Stderr, "  ella %s -c ella.json -a\n", action)
+		fmt.Fprintf(os.Stderr, "  ella %s -c ella.json [services...]\n", action)
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Flags:")
 		f.PrintDefaults()
 	}
 
@@ -177,7 +177,7 @@ func runCliAction(
 
 	err := config.ReadParsedConfig(*configPath, &c)
 	if err != nil {
-		fmt.Println("error: invalid config:", err)
+		fmt.Fprintln(os.Stderr, "error: invalid config:", err)
 		return CODE_INVALID_CONFIG
 	}
 
@@ -190,7 +190,7 @@ func runCliAction(
 		serviceNames = f.Args()
 	}
 	if len(serviceNames) == 0 {
-		fmt.Println("error: no service name specified")
+		fmt.Fprintln(os.Stderr, "error: no service name specified")
 
 		return CODE_INVALID_INVOKATION
 	}
@@ -204,7 +204,7 @@ func runCliAction(
 	socket := SocketClient{pid}
 	err = socket.Action(ctx, os.Stdout, action, serviceNames...)
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Sprintln(os.Stderr, "error:", err)
 		return CODE_GENERAL_ERR
 	}
 
