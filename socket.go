@@ -143,7 +143,7 @@ func (this *SocketServer) action(
 
 			err := actionFn(s)
 			if err != nil {
-				fmt.Fprintf(w, "service(%s): %s\n", s.Name, err)
+				fmt.Fprintf(w, "%s: %s\n", s.Name, err)
 			}
 		}()
 	}

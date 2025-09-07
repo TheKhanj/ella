@@ -62,7 +62,7 @@ func (this *Service) Run(ctx context.Context) {
 	r, w := io.Pipe()
 
 	this.log = log.New(
-		w, fmt.Sprintf("service(%s): ", this.Name), 0,
+		w, fmt.Sprintf("%s: ", this.Name), 0,
 	)
 
 	go func() {
@@ -71,7 +71,7 @@ func (this *Service) Run(ctx context.Context) {
 
 		err := this.logB.Run(r)
 		if err != nil {
-			fmt.Printf("service(%s): logger stopped: %s\n", this.Name, err)
+			fmt.Printf("%s: logger stopped: %s\n", this.Name, err)
 		}
 	}()
 
@@ -129,7 +129,7 @@ func (this *Service) Logs() io.ReadCloser {
 		r, w := io.Pipe()
 		go func() {
 			common.FlushWithContext(
-				fmt.Sprintf("service(%s): stdout:", this.Name),
+				fmt.Sprintf("%s[stdout]:", this.Name),
 				w, stdout,
 			)
 		}()
@@ -140,7 +140,7 @@ func (this *Service) Logs() io.ReadCloser {
 		r, w := io.Pipe()
 		go func() {
 			common.FlushWithContext(
-				fmt.Sprintf("service(%s): stderr:", this.Name),
+				fmt.Sprintf("%s[stderr]:", this.Name),
 				w, stderr,
 			)
 		}()
