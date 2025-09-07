@@ -7,9 +7,122 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 	"syscall"
 )
+
+func GetPidFile(pidFile *string) string {
+	if pidFile != nil {
+		return *pidFile
+	}
+
+	if uid := syscall.Getuid(); uid == 0 {
+		return "/var/run/ella/main.pid"
+	} else {
+		return fmt.Sprintf("/var/run/user/%d/ella/main.pid", uid)
+	}
+}
+
+func ReadConfig(path string, cfg *Config) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	return cfg.UnmarshalJSON(b)
+}
+
+func ReadParsedConfig(path string, cfg *Config) error {
+	var raw Config
+	err := ReadConfig(path, &raw)
+	if err != nil {
+		return err
+	}
+
+	return raw.IncludeAll(cfg)
+}
+
+func (this *Config) IncludeAll(cfg *Config) error {
+	return this.includeAll(cfg, []string{})
+}
+
+func (this *Config) includeAll(cfg *Config, included []string) error {
+	cfg.PidFile = this.PidFile
+	services := make([]Service, 0)
+
+	for _, glob := range this.Include {
+		cfgs, err := this.globReadConfig(included, glob)
+		if err != nil {
+			return err
+		}
+
+		for _, cfg := range cfgs {
+			services = append(services, cfg.Services...)
+		}
+	}
+
+	services = append(services, this.Services...)
+	cfg.Services = services
+
+	err := this.checkDuplicateServices(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (this *Config) checkDuplicateServices(cfg *Config) error {
+	cfgs := make(map[string]bool)
+	for _, s := range cfg.Services {
+		if cfgs[s.Name] == true {
+			return fmt.Errorf("duplicate service name: %s", s.Name)
+		}
+		cfgs[s.Name] = true
+	}
+
+	return nil
+}
+
+func (this *Config) globReadConfig(
+	included []string, pattern string,
+) ([]*Config, error) {
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	cfgs := make([]*Config, 0)
+	for _, file := range files {
+		if slices.Contains(included, file) {
+			return nil, fmt.Errorf(
+				"circular inclusion: %s -> %s",
+				strings.Join(included, " -> "), file,
+			)
+		}
+
+		var cfg Config
+		err = ReadConfig(file, &cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		included = append(included, file)
+		var subCfg Config
+		err := cfg.includeAll(&subCfg, included)
+		included = included[:len(included)-1]
+		if err != nil {
+			return nil, err
+		}
+
+		cfgs = append(cfgs, &subCfg)
+	}
+
+	return cfgs, nil
+}
 
 func (this *Proc) GetStop() (StopProcAction, error) {
 	stop := this.Stop
@@ -190,5 +303,50 @@ func (this *Proc) parseEnvVal(key string, val any) (string, error) {
 		return literal.Value, nil
 	} else {
 		return "", fmt.Errorf("invalid environment value: %s: %v", key, val)
+	}
+}
+
+func (this *ProcActionSignalCode) GetSignal() syscall.Signal {
+	switch *this {
+	case ProcActionSignalCodeSIGABRT:
+		return syscall.SIGABRT
+	case ProcActionSignalCodeSIGALRM:
+		return syscall.SIGALRM
+	case ProcActionSignalCodeSIGCHLD:
+		return syscall.SIGCHLD
+	case ProcActionSignalCodeSIGCONT:
+		return syscall.SIGCONT
+	case ProcActionSignalCodeSIGFPE:
+		return syscall.SIGFPE
+	case ProcActionSignalCodeSIGHUP:
+		return syscall.SIGHUP
+	case ProcActionSignalCodeSIGILL:
+		return syscall.SIGILL
+	case ProcActionSignalCodeSIGINT:
+		return syscall.SIGINT
+	case ProcActionSignalCodeSIGKILL:
+		return syscall.SIGKILL
+	case ProcActionSignalCodeSIGPIPE:
+		return syscall.SIGPIPE
+	case ProcActionSignalCodeSIGQUIT:
+		return syscall.SIGQUIT
+	case ProcActionSignalCodeSIGSEGV:
+		return syscall.SIGSEGV
+	case ProcActionSignalCodeSIGSTOP:
+		return syscall.SIGSTOP
+	case ProcActionSignalCodeSIGTERM:
+		return syscall.SIGTERM
+	case ProcActionSignalCodeSIGTSTP:
+		return syscall.SIGTSTP
+	case ProcActionSignalCodeSIGTTIN:
+		return syscall.SIGTTIN
+	case ProcActionSignalCodeSIGTTOU:
+		return syscall.SIGTTOU
+	case ProcActionSignalCodeSIGUSR1:
+		return syscall.SIGUSR1
+	case ProcActionSignalCodeSIGUSR2:
+		return syscall.SIGUSR2
+	default:
+		panic(fmt.Sprintf("not implemented signal: %s", string(*this)))
 	}
 }

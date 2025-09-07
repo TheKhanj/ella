@@ -44,7 +44,7 @@ func (this *Daemon) Run(ctx context.Context, cfgPath string) int {
 
 	var c config.Config
 
-	err := config.ReadConfig(cfgPath, &c)
+	err := config.ReadParsedConfig(cfgPath, &c)
 	if err != nil {
 		fmt.Println("error: invalid config:", err)
 		return CODE_INVALID_CONFIG
@@ -157,23 +157,16 @@ func (this *Daemon) runService(ctx context.Context, s *Service) {
 }
 
 func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {
-	// TODO: find entry service and run that instead of all services
-	serviceCfgs, err := c.GetServices()
-	if err != nil {
-		log.Println("error:", err)
-
-		return nil, CODE_INVALID_CONFIG
-	}
 	this.serviceCfgs = make(map[string]*config.Service)
 	services := make([]*Service, 0)
-	for _, cfg := range serviceCfgs {
-		s, err := NewServiceFromConfig(cfg)
+	for _, cfg := range c.Services {
+		s, err := NewServiceFromConfig(&cfg)
 		if err != nil {
 			log.Println("error:", err)
 			return nil, CODE_INITIALIZATION_FAILED
 		}
 		services = append(services, s)
-		this.serviceCfgs[cfg.Name] = cfg
+		this.serviceCfgs[cfg.Name] = &cfg
 	}
 
 	return services, CODE_SUCCESS

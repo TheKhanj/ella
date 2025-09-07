@@ -131,7 +131,7 @@ func (this *LogsCli) Exec() int {
 
 	var c config.Config
 
-	err := config.ReadConfig(*configPath, &c)
+	err := config.ReadParsedConfig(*configPath, &c)
 	if err != nil {
 		fmt.Println("error: invalid config:", err)
 		return CODE_INVALID_CONFIG
@@ -139,14 +139,7 @@ func (this *LogsCli) Exec() int {
 
 	var serviceNames []string
 	if *all {
-		var err error
-		serviceNames = make([]string, 0)
-		services, err := c.GetServices()
-		if err != nil {
-			fmt.Println("error:", err)
-			return CODE_GENERAL_ERR
-		}
-		for _, s := range services {
+		for _, s := range c.Services {
 			serviceNames = append(serviceNames, s.Name)
 		}
 	} else {
