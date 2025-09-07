@@ -225,8 +225,6 @@ func (this *Proc) wait(stdout, stderr io.ReadCloser) error {
 func (this *Proc) waitForCmd() {
 	err := this.cmd.Wait()
 	if err != nil {
-		fmt.Println("process:", err)
-
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			this.exitCode.Store(int32(exitErr.ExitCode()))
 		}
@@ -256,10 +254,6 @@ func (this *Proc) flush(b *Broadcaster, out io.ReadCloser) {
 	err := b.Run(out)
 	if err == os.ErrClosed {
 		return
-	}
-
-	if err != nil {
-		fmt.Println("process: broadcaster:", err)
 	}
 
 	out.Close()
