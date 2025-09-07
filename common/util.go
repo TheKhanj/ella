@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -98,9 +97,9 @@ func FlushWithContext(
 				line := buf.Bytes()
 
 				if c == '\r' {
-					fmt.Fprintf(into, "\r%s: %s", context, string(line[:len(line)-1]))
+					fmt.Fprintf(into, "\r%s %s", context, string(line[:len(line)-1]))
 				} else {
-					fmt.Fprintf(into, "\r%s: %s", context, string(line))
+					fmt.Fprintf(into, "\r%s %s", context, string(line))
 				}
 
 				buf.Reset()
@@ -109,7 +108,7 @@ func FlushWithContext(
 
 		if err == io.EOF {
 			if buf.Len() > 0 {
-				fmt.Fprintf(into, "%s: %s", context, buf.String())
+				fmt.Fprintf(into, "%s %s", context, buf.String())
 			}
 			break
 		}
@@ -196,7 +195,7 @@ func WaitAny(
 
 			err := fn(subCtx)
 			if err != nil {
-				log.Println("error:", err)
+				fmt.Println("error:", err)
 			}
 
 			cancels <- struct{}{}

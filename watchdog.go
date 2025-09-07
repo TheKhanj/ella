@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync/atomic"
 
 	"github.com/thekhanj/ella/config"
@@ -102,7 +101,7 @@ func (this *SimpleWatchdog) run(
 	go func() {
 		err := proc.Run(context.Background())
 		if err != nil {
-			log.Println("watchdog: process:", err)
+			fmt.Println("watchdog: process:", err)
 		}
 	}()
 

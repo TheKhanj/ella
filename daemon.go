@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -65,7 +64,7 @@ func (this *Daemon) Run(ctx context.Context, cfgPath string) int {
 	socket := SocketServer{this.Service}
 	err = this.initVarDir()
 	if err != nil {
-		log.Println("error:", err)
+		fmt.Println("error:", err)
 		return CODE_GENERAL_ERR
 	}
 	common.WaitAny(
@@ -78,7 +77,7 @@ func (this *Daemon) Run(ctx context.Context, cfgPath string) int {
 	)
 	err = this.deinitVarDir()
 	if err != nil {
-		log.Println("error:", err)
+		fmt.Println("error:", err)
 		return CODE_GENERAL_ERR
 	}
 
@@ -136,7 +135,7 @@ func (this *Daemon) runService(ctx context.Context, s *Service) {
 
 			_, err := io.Copy(os.Stdout, logs)
 			if err != nil {
-				log.Println("daemon:", err)
+				fmt.Println("daemon:", err)
 			}
 		}()
 	}
@@ -147,7 +146,7 @@ func (this *Daemon) runService(ctx context.Context, s *Service) {
 
 		err := s.Start()
 		if err != nil {
-			log.Println("error:", err)
+			fmt.Println("error:", err)
 		}
 	}()
 
@@ -160,7 +159,7 @@ func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {
 	for _, cfg := range c.Services {
 		s, err := NewServiceFromConfig(&cfg)
 		if err != nil {
-			log.Println("error:", err)
+			fmt.Println("error:", err)
 			return nil, CODE_INITIALIZATION_FAILED
 		}
 		services = append(services, s)

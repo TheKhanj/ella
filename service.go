@@ -62,7 +62,7 @@ func (this *Service) Run(ctx context.Context) {
 	r, w := io.Pipe()
 
 	this.log = log.New(
-		w, fmt.Sprintf("service(%s): ", this.Name), log.LstdFlags,
+		w, fmt.Sprintf("service(%s): ", this.Name), 0,
 	)
 
 	go func() {
@@ -71,7 +71,7 @@ func (this *Service) Run(ctx context.Context) {
 
 		err := this.logB.Run(r)
 		if err != nil {
-			log.Printf("service(%s): logger stopped: %s", this.Name, err)
+			fmt.Printf("service(%s): logger stopped: %s\n", this.Name, err)
 		}
 	}()
 
@@ -126,11 +126,25 @@ func (this *Service) Logs() io.ReadCloser {
 	var stdout, stderr io.ReadCloser = nil, nil
 	if this.logStdout {
 		stdout = this.Watchdog.Procs().StdoutPipe()
-		readers = append(readers, stdout)
+		r, w := io.Pipe()
+		go func() {
+			common.FlushWithContext(
+				fmt.Sprintf("service(%s): stdout:", this.Name),
+				w, stdout,
+			)
+		}()
+		readers = append(readers, r)
 	}
 	if this.logStderr {
 		stderr = this.Watchdog.Procs().StderrPipe()
-		readers = append(readers, stderr)
+		r, w := io.Pipe()
+		go func() {
+			common.FlushWithContext(
+				fmt.Sprintf("service(%s): stderr:", this.Name),
+				w, stderr,
+			)
+		}()
+		readers = append(readers, r)
 	}
 
 	return common.StreamLines(readers...)
@@ -143,7 +157,6 @@ func (this *Service) GetState() ServiceState {
 func (this *Service) setState(state ServiceState) {
 	this.state.Store(int32(state))
 	go this.bus.Pub(state, 0)
-	this.log.Printf("state: %s", state)
 }
 
 func (this *Service) handleWatchdogSignals(
@@ -190,6 +203,7 @@ func (this *Service) start() error {
 	if !this.GetState().IsStopped() {
 		return ServiceErrAlreadyRunning
 	}
+	this.log.Printf("starting")
 
 	this.setState(ServiceStateActivating)
 
@@ -210,6 +224,7 @@ func (this *Service) start() error {
 }
 
 func (this *Service) startDone() {
+	this.log.Printf("started")
 	this.setState(ServiceStateActive)
 }
 
@@ -217,6 +232,7 @@ func (this *Service) stop() error {
 	if this.GetState().IsStopped() {
 		return ServiceErrAlreadyStopped
 	}
+	this.log.Printf("stopping")
 
 	this.setState(ServiceStateDeactivating)
 
@@ -236,6 +252,7 @@ func (this *Service) stop() error {
 }
 
 func (this *Service) stopDone() {
+	this.log.Printf("stopped")
 	this.setState(ServiceStateInactive)
 }
 
@@ -243,6 +260,7 @@ func (this *Service) reload() error {
 	if this.GetState() != ServiceStateActive {
 		return ServiceErrNotActive
 	}
+	this.log.Printf("reloading")
 
 	this.setState(ServiceStateReloading)
 
@@ -261,10 +279,12 @@ func (this *Service) reload() error {
 }
 
 func (this *Service) reloadDone() {
+	this.log.Printf("reloaded")
 	this.setState(ServiceStateActive)
 }
 
 func (this *Service) fail() {
+	this.log.Printf("failed")
 	this.setState(ServiceStateFailed)
 }
 

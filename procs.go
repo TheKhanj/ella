@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"log"
 	"sync"
 	"sync/atomic"
 
@@ -68,13 +68,13 @@ func (this *Procs) pipe(
 		if err == nil {
 			_, err := io.Copy(w, getPipe(last))
 			if err != nil {
-				log.Println("procs:", err)
+				fmt.Println("procs:", err)
 				return
 			}
 		}
 
 		if !this.running.Load() {
-			log.Println("procs: pubsub not running")
+			fmt.Println("procs: pubsub not running")
 			return
 		}
 
@@ -88,7 +88,7 @@ func (this *Procs) pipe(
 		for proc := range ch {
 			_, err := io.Copy(w, getPipe(proc))
 			if err != nil {
-				log.Println("procs:", err)
+				fmt.Println("procs:", err)
 				return
 			}
 		}
