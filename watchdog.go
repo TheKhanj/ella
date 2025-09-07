@@ -46,6 +46,7 @@ type SimpleWatchdog struct {
 	reload ProcAction
 
 	running atomic.Bool
+	cancel  func()
 }
 
 func (this *SimpleWatchdog) Start() (chan WatchdogSignal, error) {
@@ -61,7 +62,10 @@ func (this *SimpleWatchdog) Start() (chan WatchdogSignal, error) {
 	go this.procs.Push(proc)
 
 	signals := make(chan WatchdogSignal)
-	go this.run(proc, signals)
+	ctx, cancel := context.WithCancel(context.Background())
+	this.cancel = cancel
+
+	go this.run(ctx, proc, signals)
 
 	return signals, nil
 }
@@ -71,6 +75,8 @@ func (this *SimpleWatchdog) Stop() error {
 	if err != nil {
 		return err
 	}
+	this.cancel()
+	this.running.Store(false)
 
 	return this.stop.Exec(proc)
 }
@@ -89,6 +95,7 @@ func (this *SimpleWatchdog) Procs() *Procs {
 }
 
 func (this *SimpleWatchdog) run(
+	ctx context.Context,
 	proc *Proc, signals chan WatchdogSignal,
 ) {
 	states := proc.Sub()
@@ -99,7 +106,7 @@ func (this *SimpleWatchdog) run(
 	}()
 
 	go func() {
-		err := proc.Run(context.Background())
+		err := proc.Run(ctx)
 		if err != nil {
 			fmt.Println("watchdog: process:", err)
 		}
@@ -116,7 +123,7 @@ func (this *SimpleWatchdog) run(
 				panic("unreachable code")
 			}
 
-			if code == 0 {
+			if code == 0 || this.running.Load() == false {
 				this.signal(signals, WatchdogSigStopped)
 			} else {
 				this.signal(signals, WatchdogSigFailed)
