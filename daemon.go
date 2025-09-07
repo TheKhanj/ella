@@ -21,7 +21,6 @@ type Daemon struct {
 	log     bool
 
 	services    []*Service
-	serviceCfgs map[string]*config.Service
 }
 
 func (this *Daemon) Service(name string) (*Service, error) {
@@ -157,7 +156,6 @@ func (this *Daemon) runService(ctx context.Context, s *Service) {
 }
 
 func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {
-	this.serviceCfgs = make(map[string]*config.Service)
 	services := make([]*Service, 0)
 	for _, cfg := range c.Services {
 		s, err := NewServiceFromConfig(&cfg)
@@ -166,7 +164,6 @@ func (this *Daemon) getServices(c *config.Config) ([]*Service, int) {
 			return nil, CODE_INITIALIZATION_FAILED
 		}
 		services = append(services, s)
-		this.serviceCfgs[cfg.Name] = &cfg
 	}
 
 	return services, CODE_SUCCESS
