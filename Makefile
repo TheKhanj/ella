@@ -12,6 +12,9 @@ GO_SRC_FILES = $(shell find . -name '*.go' | grep -v '^./config')
 
 all: ella $(FSM_PNG_FILES)
 
+clean:
+	rm ella fsm/*.png
+
 ella: $(GO_SRC_FILES) config .version
 	go generate && \
 		go build \
@@ -40,4 +43,4 @@ assert-version:
 .version: assert-version
 	@true >/dev/null
 
-.PHONY: assert-version
+.PHONY: assert-version clean
