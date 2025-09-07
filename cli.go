@@ -88,7 +88,7 @@ func (this *RunCli) Exec() int {
 
 	f.Usage = func() {
 		fmt.Println("Usage:")
-		fmt.Println("  ella run -c ella.json")
+		fmt.Println("  ella run -c ella.json [services...]")
 		fmt.Println()
 		fmt.Println("Flags:")
 		f.PrintDefaults()
@@ -96,18 +96,14 @@ func (this *RunCli) Exec() int {
 
 	f.Parse(this.args)
 
-	if len(f.Args()) != 0 {
-		fmt.Println("error: extra arguments:", f.Args()[0])
-
-		return CODE_INVALID_INVOKATION
-	}
+	services := f.Args()
 
 	ctx := common.NewSignalCtx(context.Background())
 	d := Daemon{
 		log: !*hideLogs,
 	}
 
-	return d.Run(ctx, *config)
+	return d.Run(ctx, *config, services)
 }
 
 type LogsCli struct {

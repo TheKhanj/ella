@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -19,7 +20,7 @@ type Daemon struct {
 	running atomic.Bool
 	log     bool
 
-	services    []*Service
+	services []*Service
 }
 
 func (this *Daemon) Service(name string) (*Service, error) {
@@ -32,7 +33,9 @@ func (this *Daemon) Service(name string) (*Service, error) {
 	return nil, fmt.Errorf("service not found: %s", name)
 }
 
-func (this *Daemon) Run(ctx context.Context, cfgPath string) int {
+func (this *Daemon) Run(
+	ctx context.Context, cfgPath string, starts []string,
+) int {
 	if this.running.Load() {
 		fmt.Println("error: daemon already running")
 		return CODE_GENERAL_ERR
@@ -45,6 +48,12 @@ func (this *Daemon) Run(ctx context.Context, cfgPath string) int {
 	err := config.ReadParsedConfig(cfgPath, &c)
 	if err != nil {
 		fmt.Println("error: invalid config:", err)
+		return CODE_INVALID_CONFIG
+	}
+
+	err = this.checkServicesToExist(&c, starts)
+	if err != nil {
+		fmt.Println("error:", err)
 		return CODE_INVALID_CONFIG
 	}
 
@@ -67,13 +76,12 @@ func (this *Daemon) Run(ctx context.Context, cfgPath string) int {
 		fmt.Println("error:", err)
 		return CODE_GENERAL_ERR
 	}
+
+	go this.startServices(ctx, starts)
+
 	common.WaitAny(
 		ctx,
 		socket.Listen,
-		func(ctx context.Context) error {
-			this.runAllServices(ctx)
-			return nil
-		},
 	)
 	err = this.deinitVarDir()
 	if err != nil {
@@ -105,14 +113,36 @@ func (this *Daemon) writePid(pidFile string) error {
 	)
 }
 
-func (this *Daemon) runAllServices(ctx context.Context) {
+func (this *Daemon) checkServicesToExist(
+	cfg *config.Config, services []string,
+) error {
+	for _, serviceName := range services {
+		exist := slices.ContainsFunc(
+			cfg.Services, func(s config.Service) bool {
+				return s.Name == serviceName
+			},
+		)
+
+		if !exist {
+			return fmt.Errorf("service %s does not exist", serviceName)
+		}
+	}
+
+	return nil
+}
+
+func (this *Daemon) startServices(ctx context.Context, services []string) {
 	var wg sync.WaitGroup
-	wg.Add(len(this.services))
-	for _, s := range this.services {
+	wg.Add(len(services))
+	for _, sName := range services {
 		go func() {
 			defer wg.Done()
 
-			this.runService(ctx, s)
+			// this is shit but i'm too dumb right now to do anything about it
+			index := slices.IndexFunc(this.services, func(service *Service) bool {
+				return service.Name == sName
+			})
+			this.runService(ctx, this.services[index])
 		}()
 	}
 	wg.Wait()
