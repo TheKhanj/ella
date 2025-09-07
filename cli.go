@@ -36,12 +36,12 @@ func (this *Cli) Exec() int {
 		fmt.Fprintln(os.Stderr, "  ella -h")
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Available Commands:")
-		fmt.Fprintln(os.Stderr, "  run       Run the daemon")
-		fmt.Fprintln(os.Stderr, "  logs      Run the daemon")
-		fmt.Fprintln(os.Stderr, "  start     Start services")
-		fmt.Fprintln(os.Stderr, "  stop      Stop services")
-		fmt.Fprintln(os.Stderr, "  restart   Restart services")
-		fmt.Fprintln(os.Stderr, "  reload    Reload services")
+		fmt.Fprintln(os.Stderr, "  run       run the daemon")
+		fmt.Fprintln(os.Stderr, "  logs      run the daemon")
+		fmt.Fprintln(os.Stderr, "  start     start services")
+		fmt.Fprintln(os.Stderr, "  stop      stop services")
+		fmt.Fprintln(os.Stderr, "  restart   restart services")
+		fmt.Fprintln(os.Stderr, "  reload    reload services")
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Flags:")
 		f.PrintDefaults()
@@ -101,8 +101,9 @@ type RunCli struct {
 func (this *RunCli) Exec() int {
 	f := flag.NewFlagSet("ella", flag.ExitOnError)
 	cfgPath := f.String("c", "ella.json", "config file")
-	hideLogs := f.Bool("l", false, "supress logs")
+	hideLogs := f.Bool("l", false, "suppress logs")
 	all := f.Bool("a", false, "start all services")
+	help := f.Bool("h", false, "show help")
 
 	f.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
@@ -113,6 +114,12 @@ func (this *RunCli) Exec() int {
 	}
 
 	f.Parse(this.args)
+
+	if *help {
+		f.Usage()
+
+		return CODE_SUCCESS
+	}
 
 	ctx := common.NewSignalCtx(context.Background())
 	d := Daemon{
@@ -161,6 +168,7 @@ func runCliAction(
 	f := flag.NewFlagSet("ella", flag.ExitOnError)
 	configPath := f.String("c", "ella.json", "config file")
 	all := f.Bool("a", false, allMsg)
+	help := f.Bool("h", false, "show help")
 
 	f.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
@@ -172,6 +180,12 @@ func runCliAction(
 	}
 
 	f.Parse(args)
+
+	if *help {
+		f.Usage()
+
+		return CODE_SUCCESS
+	}
 
 	var c config.Config
 
