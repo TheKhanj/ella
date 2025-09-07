@@ -2,5 +2,3 @@ github.com/cskr/pubsub/v2 v2.0.2 h1:395hhPXEsyI1b+5nfj+s5Q3gdxpg0jsWd3t/QAdmU1Y=
 github.com/cskr/pubsub/v2 v2.0.2/go.mod h1:XYuiN8dhcXTCzQDa5SH4+B3zLso94FTwAk0maAEGJJw=
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 h1:El6M4kTTCOh6aBiKaUGG7oYTSPP8MxqL4YI3kZKwcP4=
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510/go.mod h1:pupxD2MaaD3pAXIBCelhxNneeOaAeabZDe5s4K6zSpQ=
-golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b h1:DXr+pvt3nC887026GRP39Ej11UATqWDmWuS99x26cD0=
-golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b/go.mod h1:4QTo5u+SEIbbKW1RacMZq1YEfOBqeXa19JeshGi+zc4=
