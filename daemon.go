@@ -34,7 +34,7 @@ func (this *Daemon) Service(name string) (*Service, error) {
 }
 
 func (this *Daemon) Run(
-	ctx context.Context, cfgPath string, starts []string,
+	ctx context.Context, c *config.Config, starts []string,
 ) int {
 	if this.running.Load() {
 		fmt.Println("error: daemon already running")
@@ -43,15 +43,7 @@ func (this *Daemon) Run(
 
 	this.running.Store(true)
 
-	var c config.Config
-
-	err := config.ReadParsedConfig(cfgPath, &c)
-	if err != nil {
-		fmt.Println("error: invalid config:", err)
-		return CODE_INVALID_CONFIG
-	}
-
-	err = this.checkServicesToExist(&c, starts)
+	err := this.checkServicesToExist(c, starts)
 	if err != nil {
 		fmt.Println("error:", err)
 		return CODE_INVALID_CONFIG
@@ -65,7 +57,7 @@ func (this *Daemon) Run(
 	}
 
 	var code int
-	this.services, code = this.getServices(&c)
+	this.services, code = this.getServices(c)
 	if code != CODE_SUCCESS {
 		return code
 	}

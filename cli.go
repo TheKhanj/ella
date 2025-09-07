@@ -83,8 +83,9 @@ type RunCli struct {
 
 func (this *RunCli) Exec() int {
 	f := flag.NewFlagSet("ella", flag.ExitOnError)
-	config := f.String("c", "ella.json", "config file")
+	cfgPath := f.String("c", "ella.json", "config file")
 	hideLogs := f.Bool("l", false, "supress logs")
+	all := f.Bool("a", false, "start all services")
 
 	f.Usage = func() {
 		fmt.Println("Usage:")
@@ -96,14 +97,28 @@ func (this *RunCli) Exec() int {
 
 	f.Parse(this.args)
 
-	services := f.Args()
-
 	ctx := common.NewSignalCtx(context.Background())
 	d := Daemon{
 		log: !*hideLogs,
 	}
 
-	return d.Run(ctx, *config, services)
+	var c config.Config
+	err := config.ReadParsedConfig(*cfgPath, &c)
+	if err != nil {
+		fmt.Println("error: invalid config:", err)
+		return CODE_INVALID_CONFIG
+	}
+
+	var serviceNames []string
+	if *all {
+		for _, s := range c.Services {
+			serviceNames = append(serviceNames, s.Name)
+		}
+	} else {
+		serviceNames = f.Args()
+	}
+
+	return d.Run(ctx, &c, serviceNames)
 }
 
 type LogsCli struct {
