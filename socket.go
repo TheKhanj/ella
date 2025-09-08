@@ -55,6 +55,9 @@ func (this *SocketServer) handleConnection(conn net.Conn) {
 }
 
 func (this *SocketServer) handleCommand(w io.Writer, cmdLine string) {
+	var err error
+	var handled bool
+
 	parts, err := shlex.Split(cmdLine)
 	if err != nil {
 		fmt.Fprintf(w, "error: parsing command line failed: %s\n", err)
@@ -62,71 +65,55 @@ func (this *SocketServer) handleCommand(w io.Writer, cmdLine string) {
 	}
 
 	cmd := parts[0]
+	args := parts[1:]
 
-	switch cmd {
-	case "logs":
-		err := this.showLogs(w, parts[1:])
+	defer func() {
 		if err != nil {
 			fmt.Fprintf(w, "error: %s\n", err)
 		}
-	case "start":
-		err := this.start(w, parts[1:])
-		if err != nil {
-			fmt.Fprintf(w, "error: %s\n", err)
-		}
-	case "stop":
-		err := this.stop(w, parts[1:])
-		if err != nil {
-			fmt.Fprintf(w, "error: %s\n", err)
-		}
-	case "restart":
-		err := this.restart(w, parts[1:])
-		if err != nil {
-			fmt.Fprintf(w, "error: %s\n", err)
-		}
-	case "reload":
-		err := this.reload(w, parts[1:])
-		if err != nil {
-			fmt.Fprintf(w, "error: %s\n", err)
-		}
-	default:
-		fmt.Fprintf(w, "error: invalid command: %s\n", cmd)
+	}()
+
+	err, handled = this.handleLogsCommand(w, cmd, args)
+	if handled {
+		return
 	}
+	err, handled = this.handleServicesCommand(w, cmd, args)
+	if handled {
+		return
+	}
+
+	fmt.Fprintf(w, "error: invalid command: %s\n", cmd)
 }
 
-func (this *SocketServer) start(w io.Writer, services []string) error {
-	return this.action(
-		w, services, func(s *Service) error {
-			return s.Start()
-		},
-	)
+var socketServiceActions = map[string]func(*Service) error{
+	"start":   func(s *Service) error { return s.Start() },
+	"stop":    func(s *Service) error { return s.Stop() },
+	"restart": func(s *Service) error { return s.Restart() },
+	"reload":  func(s *Service) error { return s.Reload() },
 }
 
-func (this *SocketServer) stop(w io.Writer, services []string) error {
-	return this.action(
-		w, services, func(s *Service) error {
-			return s.Stop()
-		},
-	)
+func (this *SocketServer) handleServicesCommand(
+	w io.Writer, cmd string, services []string,
+) (error, bool) {
+	fn, ok := socketServiceActions[cmd]
+	if !ok {
+		return nil, false
+	}
+
+	return this.runServicesAction(w, services, fn), true
 }
 
-func (this *SocketServer) restart(w io.Writer, services []string) error {
-	return this.action(
-		w, services, func(s *Service) error {
-			return s.Restart()
-		},
-	)
+func (this *SocketServer) handleLogsCommand(
+	w io.Writer, cmd string, services []string,
+) (error, bool) {
+	if cmd != "logs" {
+		return nil, false
+	}
+
+	return this.showLogs(w, services), true
 }
 
-func (this *SocketServer) reload(w io.Writer, services []string) error {
-	return this.action(
-		w, services, func(s *Service) error {
-			return s.Reload()
-		},
-	)
-}
-
-func (this *SocketServer) action(
+func (this *SocketServer) runServicesAction(
 	w io.Writer, services []string,
 	actionFn func(s *Service) error,
 ) error {
@@ -193,7 +180,7 @@ type SocketClient struct {
 	pid int
 }
 
-func (this *SocketClient) Action(
+func (this *SocketClient) ServicesCommand(
 	ctx context.Context, w io.Writer, cmd string, services ...string,
 ) error {
 	conn, err := this.openConn()

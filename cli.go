@@ -216,7 +216,7 @@ func runCliAction(
 		return code
 	}
 	socket := SocketClient{pid}
-	err = socket.Action(ctx, os.Stdout, action, serviceNames...)
+	err = socket.ServicesCommand(ctx, os.Stdout, action, serviceNames...)
 	if err != nil {
 		fmt.Sprintln(os.Stderr, "error:", err)
 		return CODE_GENERAL_ERR
