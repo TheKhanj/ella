@@ -46,6 +46,6 @@ all:
 		    flags=GOMIPS=$${extra}; \
 		fi; \
 		echo "Build $${os}-$${arch}$${extra:+ ($${extra})}..."; \
-		env GOOS=$${os} GOARCH=$${arch} $${flags} go build -trimpath -ldflags "$(LDFLAGS)" -o ./release/ella_$${target_suffix} .; \
+		env GOOS=$${os} GOARCH=$${arch} $${flags} go build -trimpath -ldflags "$(LD_FLAGS)" -o ./release/ella_$${target_suffix} .; \
 		echo "Build $${os}-$${arch}$${extra:+ ($${extra})} done"; \
 	)
