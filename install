@@ -13,7 +13,6 @@ run() {
 	return $e
 }
 
-run "creating docs directory" mkdir -p /usr/share/doc/ella
 run "installing binary" install -Dm755 ella /usr/bin/ella
 run "installing fsm docs" install -Dm644 fsm/*.png /usr/share/doc/ella/
 run "installing man page" install -Dm644 man/ella.1.gz /usr/share/man/man1/ella.1.gz
