@@ -1,3 +1,6 @@
+// MIT License
+// Copyright (c) 2025 Pooyan Khanjankhani
+
 package common
 
 import (
