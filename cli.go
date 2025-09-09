@@ -74,21 +74,15 @@ func (this *Cli) Exec() int {
 	case "run":
 		c := RunCli{args: f.Args()[1:]}
 		return c.Exec()
-	case "logs":
-		c := LogsCli{args: f.Args()[1:]}
-		return c.Exec()
-	case "start":
-		c := StartCli{args: f.Args()[1:]}
-		return c.Exec()
-	case "stop":
-		c := StopCli{args: f.Args()[1:]}
-		return c.Exec()
-	case "restart":
-		c := RestartCli{args: f.Args()[1:]}
-		return c.Exec()
-	case "reload":
-		c := ReloadCli{args: f.Args()[1:]}
-		return c.Exec()
+	case "logs", "start", "stop", "restart", "reload":
+		msg := map[string]string{
+			"logs":    "show logs for all services",
+			"start":   "start all services",
+			"stop":    "stop all services",
+			"restart": "restart all services",
+			"reload":  "reload all services",
+		}
+		return runCliAction(this.args, cmd, msg[cmd])
 	case "list":
 		c := ListCli{args: f.Args()[1:]}
 		return c.Exec()
@@ -227,46 +221,6 @@ func runCliAction(
 	}
 
 	return CODE_SUCCESS
-}
-
-type LogsCli struct {
-	args []string
-}
-
-func (this *LogsCli) Exec() int {
-	return runCliAction(this.args, "logs", "show logs for all services")
-}
-
-type StartCli struct {
-	args []string
-}
-
-func (this *StartCli) Exec() int {
-	return runCliAction(this.args, "start", "start all services")
-}
-
-type StopCli struct {
-	args []string
-}
-
-func (this *StopCli) Exec() int {
-	return runCliAction(this.args, "stop", "stop all services")
-}
-
-type RestartCli struct {
-	args []string
-}
-
-func (this *RestartCli) Exec() int {
-	return runCliAction(this.args, "restart", "restart all services")
-}
-
-type ReloadCli struct {
-	args []string
-}
-
-func (this *ReloadCli) Exec() int {
-	return runCliAction(this.args, "reload", "reload all services")
 }
 
 type ListCli struct {
