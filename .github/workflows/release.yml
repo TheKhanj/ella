@@ -30,10 +30,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Update apt cache
+        run: sudo apt-get update
+
+      - name: Install Graphviz
+        run: sudo apt-get install -y graphviz
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: "1.24"
+
+      - name: Install go-jsonschema
+        run: go install github.com/atombender/go-jsonschema@latest
+
+      - name: Install stringer
+        run: go install golang.org/x/tools/cmd/stringer@latest
 
       - name: Make All
         run: |
