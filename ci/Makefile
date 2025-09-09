@@ -14,7 +14,11 @@
 # modified for use in my project.
 # -----------------------------------------------------------------------------
 
-LDFLAGS := -s -w
+VERSION = $(shell git describe --tags --exact-match 2>/dev/null || echo -n dev)
+LD_FLAGS = -X 'main.VERSION=$(VERSION)'
+ifneq ($(VERSION),dev)
+LD_FLAGS += -s -w
+endif
 
 # TODO: not supported yet
 # windows:amd64 windows:arm64
