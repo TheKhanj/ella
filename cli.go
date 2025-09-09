@@ -83,7 +83,7 @@ func (this *Cli) Exec() int {
 			"restart": "restart all services",
 			"reload":  "reload all services",
 		}
-		return runCliAction(this.args, cmd, msg[cmd])
+		return runCliAction(this.args[1:], cmd, msg[cmd])
 	case "list":
 		c := ListCli{args: f.Args()[1:]}
 		return c.Exec()
