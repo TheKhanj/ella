@@ -42,6 +42,7 @@ func (this *Cli) Exec() int {
 		fmt.Fprintln(os.Stderr, "  stop      stop services")
 		fmt.Fprintln(os.Stderr, "  restart   restart services")
 		fmt.Fprintln(os.Stderr, "  reload    reload services")
+		fmt.Fprintln(os.Stderr, "  list      list services")
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Flags:")
 		f.PrintDefaults()
@@ -87,6 +88,9 @@ func (this *Cli) Exec() int {
 		return c.Exec()
 	case "reload":
 		c := ReloadCli{args: f.Args()[1:]}
+		return c.Exec()
+	case "list":
+		c := ListCli{args: f.Args()[1:]}
 		return c.Exec()
 	default:
 		fmt.Fprintf(os.Stderr, "error: invalid command \"%s\"\n", cmd)
@@ -216,7 +220,7 @@ func runCliAction(
 		return code
 	}
 	socket := SocketClient{pid}
-	err = socket.ServicesCommand(ctx, os.Stdout, action, serviceNames...)
+	err = socket.RunCommand(ctx, os.Stdout, action, serviceNames...)
 	if err != nil {
 		fmt.Sprintln(os.Stderr, "error:", err)
 		return CODE_GENERAL_ERR
@@ -263,6 +267,61 @@ type ReloadCli struct {
 
 func (this *ReloadCli) Exec() int {
 	return runCliAction(this.args, "reload", "reload all services")
+}
+
+type ListCli struct {
+	args []string
+}
+
+func (this *ListCli) Exec() int {
+	f := flag.NewFlagSet("ella", flag.ExitOnError)
+	configPath := f.String("c", "ella.json", "config file")
+	help := f.Bool("h", false, "show help")
+
+	f.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:")
+		fmt.Fprintln(os.Stderr, "  ella list -c ella.json")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Flags:")
+		f.PrintDefaults()
+	}
+
+	f.Parse(this.args)
+
+	if *help {
+		f.Usage()
+
+		return CODE_SUCCESS
+	}
+
+	var c config.Config
+
+	err := config.ReadParsedConfig(*configPath, &c)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: invalid config:", err)
+		return CODE_INVALID_CONFIG
+	}
+
+	if len(f.Args()) != 0 {
+		fmt.Fprintf(os.Stderr, "error: extra argument: %s\n", f.Args()[0])
+
+		return CODE_INVALID_INVOKATION
+	}
+
+	ctx := common.NewSignalCtx(context.Background())
+
+	pid, code := getDaemonPid(c.PidFile)
+	if code != CODE_SUCCESS {
+		return code
+	}
+	socket := SocketClient{pid}
+	err = socket.RunCommand(ctx, os.Stdout, "list")
+	if err != nil {
+		fmt.Sprintln(os.Stderr, "error:", err)
+		return CODE_GENERAL_ERR
+	}
+
+	return CODE_SUCCESS
 }
 
 func main() {

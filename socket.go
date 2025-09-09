@@ -18,6 +18,7 @@ import (
 
 type SocketServer struct {
 	getService func(name string) (*Service, error)
+	services   []*Service
 }
 
 func (this *SocketServer) Listen(ctx context.Context) error {
@@ -55,9 +56,6 @@ func (this *SocketServer) handleConnection(conn net.Conn) {
 }
 
 func (this *SocketServer) handleCommand(w io.Writer, cmdLine string) {
-	var err error
-	var handled bool
-
 	parts, err := shlex.Split(cmdLine)
 	if err != nil {
 		fmt.Fprintf(w, "error: parsing command line failed: %s\n", err)
@@ -67,22 +65,42 @@ func (this *SocketServer) handleCommand(w io.Writer, cmdLine string) {
 	cmd := parts[0]
 	args := parts[1:]
 
-	defer func() {
+	handlers := []func(io.Writer, string, []string) (error, bool){
+		this.handleLogsCommand,
+		this.handleServicesCommand,
+		this.handleListCommand,
+	}
+
+	for _, h := range handlers {
+		err, handled := h(w, cmd, args)
+		if !handled {
+			continue
+		}
+
 		if err != nil {
 			fmt.Fprintf(w, "error: %s\n", err)
 		}
-	}()
-
-	err, handled = this.handleLogsCommand(w, cmd, args)
-	if handled {
-		return
-	}
-	err, handled = this.handleServicesCommand(w, cmd, args)
-	if handled {
 		return
 	}
 
 	fmt.Fprintf(w, "error: invalid command: %s\n", cmd)
+}
+
+func (this *SocketServer) handleListCommand(
+	w io.Writer, cmd string, extraArgs []string,
+) (error, bool) {
+	if cmd != "list" {
+		return nil, false
+	}
+
+	if len(extraArgs) != 0 {
+		return fmt.Errorf("extra argument: %s", extraArgs[0]), true
+	}
+
+	for _, s := range this.services {
+		fmt.Fprintln(w, s.Name)
+	}
+	return nil, true
 }
 
 var socketServiceActions = map[string]func(*Service) error{
@@ -180,7 +198,7 @@ type SocketClient struct {
 	pid int
 }
 
-func (this *SocketClient) ServicesCommand(
+func (this *SocketClient) RunCommand(
 	ctx context.Context, w io.Writer, cmd string, services ...string,
 ) error {
 	conn, err := this.openConn()

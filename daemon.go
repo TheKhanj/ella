@@ -23,7 +23,7 @@ type Daemon struct {
 	services []*Service
 }
 
-func (this *Daemon) Service(name string) (*Service, error) {
+func (this *Daemon) getService(name string) (*Service, error) {
 	for _, s := range this.services {
 		if s.Name == name {
 			return s, nil
@@ -62,7 +62,7 @@ func (this *Daemon) Run(
 		return CODE_INVALID_CONFIG
 	}
 
-	socket := SocketServer{this.Service}
+	socket := SocketServer{this.getService, this.services}
 	err = this.initVarDir()
 	if err != nil {
 		fmt.Println("error:", err)
@@ -109,7 +109,7 @@ func (this *Daemon) checkServicesToExist(
 	cfg *config.Config, services []string,
 ) error {
 	for _, serviceName := range services {
-		_, err := this.Service(serviceName)
+		_, err := this.getService(serviceName)
 		if err != nil {
 			return err
 		}
