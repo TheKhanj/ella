@@ -1,0 +1,106 @@
+.\" man page for ella
+.TH ella 1 "2025-09-09" "ella 1.0" "process manager"
+.SH NAME
+ella \- simple process manager for running and managing services
+
+.SH SYNOPSIS
+.B ella
+<\fIcommand\fR> [<\fIargs\fR>]
+
+.SH DESCRIPTION
+ella is a minimal process manager. It can monitor, start, stop, restart, and reload services defined in a JSON configuration file.
+
+Configuration file defaults to:
+.br
+ella.json
+
+Users should consult each command's \-h for detailed options.
+
+.SH COMMANDS
+.TP
+run
+Run the daemon and start specified services.
+.TP
+logs
+Show logs of the specified services.
+.TP
+start
+Start one or more services.
+.TP
+stop
+Stop one or more services.
+.TP
+restart
+Restart one or more services.
+.TP
+reload
+Reload one or more services.
+.TP
+list
+List all defined services.
+.TP
+schema
+Show the HTTP address of the JSON configuration schema.
+
+.SH FLAGS
+.TP
+\-c <file>
+Specify a configuration file (default: ella.json)
+.TP
+\-h
+Show help
+.TP
+\-v
+Show version
+
+.SH EXAMPLES
+Run ella and start service1:
+
+.nf
+.B ella run -c ella.json service1
+.fi
+
+Show logs of a service:
+
+.nf
+.B ella logs -c ella.json service1
+.fi
+
+Start a service:
+
+.nf
+.B ella start -c ella.json service1
+.fi
+
+Stop a service:
+
+.nf
+.B ella stop -c ella.json service1
+.fi
+
+Restart a service:
+
+.nf
+.B ella restart -c ella.json service1
+.fi
+
+Reload services:
+
+.nf
+.B ella reload -c ella.json service1
+.fi
+
+List all services:
+
+.nf
+.B ella list -c ella.json
+.fi
+
+Show JSON schema address:
+
+.nf
+.B ella schema
+.fi
+
+.SH SEE ALSO
+ella(1) \- use \fBella's -h\fR for full options per command
