@@ -4,16 +4,25 @@ set -e
 
 run() {
 	local log="$1"
-	echo "$log..." >&2
+
+	if [ "x$show_log" != x"false" ]; then
+		echo "$log..." >&2
+	fi
 	shift
 	"$@"
 	e=$?
+	if [ "x$show_log" != x"false" ]; then
 	echo "$log done" >&2
+	fi
 
 	return $e
 }
 
-run "installing binary" install -Dm755 ella /usr/bin/ella
-run "installing fsm docs" install -Dm644 fsm/*.png /usr/share/doc/ella/
-run "installing man page" install -Dm644 man/ella.1.gz /usr/share/man/man1/ella.1.gz
-run "installing bash completion" install -Dm644 completion.sh /etc/bash_completion.d/ella
+pkgdir="${1:-/}"
+show_log="$2"
+
+run "installing binary" install -Dm755 ella "$pkgdir/usr/bin/ella"
+run "installing fsm docs" install -Dm644 fsm/service.png "$pkgdir/usr/share/doc/ella/service.png"
+run "installing fsm docs" install -Dm644 fsm/service-deactivating.png "$pkgdir/usr/share/doc/ella/service-deactivating.png"
+run "installing man page" install -Dm644 man/ella.1.gz "$pkgdir/usr/share/man/man1/ella.1.gz"
+run "installing bash completion" install -Dm644 completion.sh "$pkgdir/etc/bash_completion.d/ella"
