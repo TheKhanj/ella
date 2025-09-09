@@ -1,0 +1,32 @@
+# -----------------------------------------------------------------------------
+# Portions of this file are Copyright (c) 2015-2025 fatedier <fatedier@gmail.com>
+# Original work licensed under the Apache License 2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Modifications (c) 2025 Pooyan
+# Licensed under the MIT License
+#
+# You may obtain a copy of the MIT License at:
+#     https://opensource.org/licenses/MIT
+#
+# Description:
+# This file is based on FRP (https://github.com/fatedier/frp) and has been
+# modified for use in my project.
+# -----------------------------------------------------------------------------
+
+builds:
+  - skip: true
+checksum:
+  name_template: "{{ .ProjectName }}_sha256_checksums.txt"
+  algorithm: sha256
+  extra_files:
+    - glob: ./release/packages/*
+release:
+  github:
+    owner: thekhanj
+    name: ella
+
+  draft: false
+
+  extra_files:
+    - glob: ./release/packages/*
