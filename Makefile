@@ -4,7 +4,7 @@ ifneq ($(VERSION),dev)
 LD_FLAGS += -s -w
 endif
 
-CONFIG_GO_SRC_FILES = $(shell find ./config -name '*.go')
+CONFIG_GO_SRC_FILES = config/config.go $(shell find ./config -name '*.go')
 FSM_DOT_FILES = $(shell find ./fsm -name '*.dot')
 FSM_PNG_FILES = $(patsubst %.dot,%.png,$(FSM_DOT_FILES))
 
@@ -13,12 +13,12 @@ GO_SRC_FILES = $(shell find . -name '*.go' | grep -v '^./config')
 all: ella $(FSM_PNG_FILES)
 
 clean:
-	rm ella fsm/*.png
+	rm ella fsm/*.png config/config.go
 
 install: all
 	@./install
 
-ella: $(GO_SRC_FILES) config .version
+ella: $(GO_SRC_FILES) $(CONFIG_GO_SRC_FILES) .version
 	go generate && \
 		go build \
 			-ldflags "$(LD_FLAGS)" \
@@ -26,9 +26,6 @@ ella: $(GO_SRC_FILES) config .version
 
 fsm/%.png: fsm/%.dot
 	dot -Tpng $< -o $@
-
-config: $(CONFIG_GO_SRC_FILES)
-	touch config
 
 config/config: schema.json
 	cat $< > $@
