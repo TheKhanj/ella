@@ -53,17 +53,22 @@ for os in $os_all; do
 				if [ ! -f "./ella_${os}_${arch}.exe" ]; then
 					continue
 				fi
-				mkdir -p ${ella_path}/fsm
+				mkdir ${ella_path}
+				mkdir ${ella_path}/fsm
+				mkdir ${ella_path}/man
 				mv ./ella_${os}_${arch}.exe ${ella_path}/ella.exe
 			else
 				if [ ! -f "./ella_${suffix}" ]; then
 					continue
 				fi
-				mkdir -p ${ella_path}/fsm
+				mkdir ${ella_path}
+				mkdir ${ella_path}/fsm
+				mkdir ${ella_path}/man
 				mv ./ella_${suffix} ${ella_path}/ella
 			fi
 			cp ../install ${ella_path}
 			cp ../completion.sh ${ella_path}
+			cp ../man/ella.1.gz ${ella_path}/man/ella.1.gz
 			cp ../fsm/service.png ${ella_path}/fsm
 			cp ../fsm/service-deactivating.png ${ella_path}/fsm
 

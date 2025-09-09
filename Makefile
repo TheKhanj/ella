@@ -10,7 +10,7 @@ FSM_PNG_FILES = $(patsubst %.dot,%.png,$(FSM_DOT_FILES))
 
 GO_SRC_FILES = $(shell find . -name '*.go' | grep -v '^./config')
 
-all: ella doc $(FSM_PNG_FILES)
+all: ella man $(FSM_PNG_FILES)
 
 clean:
 	rm ella fsm/*.png config/config.go
@@ -18,10 +18,10 @@ clean:
 install: all
 	@./install
 
-doc: doc/ella.1.gz
-	@touch doc
+man: man/ella.1.gz
+	@touch man
 
-doc/%.gz: doc/%.roff
+man/%.gz: man/%.roff
 	gzip -9 -c $< > $@
 
 ella: $(GO_SRC_FILES) $(CONFIG_GO_SRC_FILES) .version
