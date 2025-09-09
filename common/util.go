@@ -218,3 +218,12 @@ func ShellEscape(arg string) string {
 	}
 	return arg
 }
+
+func GetJsonSchemaAddress(version string) string {
+	if version == "dev" {
+		return "https://raw.githubusercontent.com/TheKhanj/ella/refs/heads/master/schema.json"
+	}
+
+	tmp := "https://raw.githubusercontent.com/TheKhanj/ella/refs/tags/%s/schema.json"
+	return fmt.Sprintf(tmp, version)
+}

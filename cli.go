@@ -43,6 +43,7 @@ func (this *Cli) Exec() int {
 		fmt.Fprintln(os.Stderr, "  restart   restart services")
 		fmt.Fprintln(os.Stderr, "  reload    reload services")
 		fmt.Fprintln(os.Stderr, "  list      list services")
+		fmt.Fprintln(os.Stderr, "  schema    show http address of config's json schema")
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Flags:")
 		f.PrintDefaults()
@@ -85,6 +86,9 @@ func (this *Cli) Exec() int {
 		return runCliAction(this.args, cmd, msg[cmd])
 	case "list":
 		c := ListCli{args: f.Args()[1:]}
+		return c.Exec()
+	case "schema":
+		c := SchemaCli{args: f.Args()[1:]}
 		return c.Exec()
 	default:
 		fmt.Fprintf(os.Stderr, "error: invalid command \"%s\"\n", cmd)
@@ -274,6 +278,30 @@ func (this *ListCli) Exec() int {
 		fmt.Sprintln(os.Stderr, "error:", err)
 		return CODE_GENERAL_ERR
 	}
+
+	return CODE_SUCCESS
+}
+
+type SchemaCli struct {
+	args []string
+}
+
+func (this *SchemaCli) Exec() int {
+	f := flag.NewFlagSet("ella", flag.ExitOnError)
+	f.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:")
+		fmt.Fprintln(os.Stderr, "  ella schema")
+	}
+
+	f.Parse(this.args)
+
+	if len(f.Args()) != 0 {
+		fmt.Fprintf(os.Stderr, "error: extra argument: %s\n", f.Args()[0])
+
+		return CODE_INVALID_INVOKATION
+	}
+
+	fmt.Println(common.GetJsonSchemaAddress(VERSION))
 
 	return CODE_SUCCESS
 }
