@@ -15,6 +15,9 @@ all: ella $(FSM_PNG_FILES)
 clean:
 	rm ella fsm/*.png
 
+install: all
+	@./install
+
 ella: $(GO_SRC_FILES) config .version
 	go generate && \
 		go build \

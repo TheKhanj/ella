@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+set -e
+
+echo "installing binary..." >&2
+mkdir -p /usr/share/doc/ella
+install -Dm755 ella /usr/bin/ella
+echo "installing fsm docs..." >&2
+install -Dm644 fsm/*.png /usr/share/doc/ella/
+echo "installing bash completion..." >&2
+install -Dm644 completion.sh /etc/bash_completion.d/ella
+echo "ella installed!" >&2
