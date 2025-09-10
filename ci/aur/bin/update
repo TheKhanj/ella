@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+set -e
+
+make -C ci/aur -B
+cp ci/aur/.SRCINFO ci/aur/PKGBUILD submodules/aur
+
+cd submodules/aur
+git add .SRCINFO PKGBUILD
+version="$(
+	cat ".SRCINFO" |
+		grep -oP '(?<=pkgver = ).*'
+)"
+git commit -m "bot: update to version v${version}"
+git push
+cd ../..
+
+git add submodules/aur
+git commit -m "bot: update to version v${version}"
