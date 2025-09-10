@@ -1,0 +1,6 @@
+/pkg
+/src
+/ella_sha256_checksums*
+/ella*.tar*
+/PKGBUILD
+/.SRCINFO

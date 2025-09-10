@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+. inc/common.sh
+
+pkgver="$1"
+tmpl="$2"
+
+while IFS= read -r line; do
+	if grep -s "^pkgver=" <<<"$line" >/dev/null; then
+		echo "pkgver=\"$pkgver\""
+	elif grep -s "^sha256sums=" <<<"$line" >/dev/null; then
+		# cache it, so users don't have to depend on curl to download it
+		echo 'cat >"ella_sha256_checksums_'$pkgver'.txt" <<EOF'
+		get_checksums "$pkgver"
+		echo 'EOF'
+		echo
+
+		echo "$line"
+	else
+		echo "$line"
+	fi
+done <"$tmpl"
