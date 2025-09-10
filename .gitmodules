@@ -1,3 +1,6 @@
 [submodule "submodules/aur"]
 	path = submodules/aur
 	url = aur@aur.archlinux.org:ella
+[submodule "submodules/homebrew"]
+	path = submodules/homebrew
+	url = git@github.com:thekhanj/homebrew-ella
