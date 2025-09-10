@@ -192,7 +192,7 @@ func (this *Service) handleSingleWdSignal(sig WatchdogSignal) error {
 		this.startDone()
 		return nil
 	case WatchdogSigStopped:
-		// TODO: think?
+		this.stopDone()
 		return nil
 	case WatchdogSigFailed:
 		this.fail()
@@ -250,7 +250,7 @@ func (this *Service) stop() error {
 		return err
 	}
 
-	this.stopDone()
+	// watchdone will call stopDone
 	return nil
 }
 
