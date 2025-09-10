@@ -1,6 +1,4 @@
 #!/usr/bin/env sh
 
-set -e
-
 ./ci/aur/bin/distribute
-./homebrew/aur/bin/distribute
+./ci/homebrew/bin/distribute
