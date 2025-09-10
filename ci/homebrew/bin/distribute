@@ -16,6 +16,6 @@ version="$(
 git commit -m "bot: update to version v${version}"
 cd ../..
 
-git add submodules/aur
+git add submodules/homebrew
 git commit -m "bot: update to version v${version}"
 git push
