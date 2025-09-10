@@ -28,7 +28,7 @@ ella_version=$(./ella -v)
 echo "build version: $ella_version"
 
 # cross_compiles
-make -f ./ci/Makefile
+make -f ./ci/goreleaser/Makefile
 
 rm -rf ./release/packages
 mkdir -p ./release/packages

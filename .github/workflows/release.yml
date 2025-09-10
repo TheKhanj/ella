@@ -72,7 +72,7 @@ jobs:
           fi
 
       - name: Build packages
-        run: ./ci/package.sh
+        run: ./ci/goreleaser/package.sh
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
