@@ -23,7 +23,6 @@ class Ella < Formula
   def install
     bin.install "ella"
     doc.install "fsm/service.png"
-    doc.install "fsm/service-deactivating.png"
     man1.install "man/ella.1.gz"
     bash_completion.install "completion.sh"
   end

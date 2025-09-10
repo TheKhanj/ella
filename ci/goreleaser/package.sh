@@ -70,7 +70,6 @@ for os in $os_all; do
 			cp ../completion.sh ${ella_path}
 			cp ../man/ella.1.gz ${ella_path}/man/ella.1.gz
 			cp ../fsm/service.png ${ella_path}/fsm
-			cp ../fsm/service-deactivating.png ${ella_path}/fsm
 
 			# packages
 			cd ./packages

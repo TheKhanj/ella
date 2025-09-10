@@ -23,6 +23,5 @@ show_log="$2"
 
 run "installing binary" install -Dm755 ella "$pkgdir/usr/bin/ella"
 run "installing fsm docs" install -Dm644 fsm/service.png "$pkgdir/usr/share/doc/ella/service.png"
-run "installing fsm docs" install -Dm644 fsm/service-deactivating.png "$pkgdir/usr/share/doc/ella/service-deactivating.png"
 run "installing man page" install -Dm644 man/ella.1.gz "$pkgdir/usr/share/man/man1/ella.1.gz"
 run "installing bash completion" install -Dm644 completion.sh "$pkgdir/etc/bash_completion.d/ella"

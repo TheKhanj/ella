@@ -28,7 +28,7 @@ digraph service_states {
 
 	// Stop transition
 	active       -> deactivating [label="stop"];
-	deactivating -> failed       [label="fail"];
+	deactivating -> failed       [label="fail (timed out)"];
 	deactivating -> inactive     [label="stop done"];
 	activating   -> failed       [label="fail (watchdog)"];
 
