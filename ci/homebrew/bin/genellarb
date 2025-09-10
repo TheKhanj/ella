@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+. inc/common.sh
+
+pkgver="$1"
+tmpl="$2"
+
+while IFS= read -r line; do
+	if grep -s "^  version" <<<"$line" >/dev/null; then
+		echo "  version \"$pkgver\""
+	elif grep -s "^      url" <<<"$line" >/dev/null; then
+		url="$(grep -o 'https://[^"]*' <<<"$line")"
+		binname="$(
+			echo "$url" | rev | cut -d '/' -f1 | rev |
+				sed "s/#{version}/$pkgver/"
+		)"
+		echo "$line"
+		echo "      sha256 \"$(get_checksum "$pkgver" "$binname")\""
+	else
+		echo "$line"
+	fi
+done <"$tmpl"
