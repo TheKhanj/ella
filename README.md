@@ -4,7 +4,7 @@
 
 ## Installation
 
-- **Arch Linux (AUR):** `ella-git` or `ella-bin`
+- **Arch Linux (AUR):** available as [`ella`](https://aur.archlinux.org/packages/ella)
 - **macOS (Homebrew):** `brew install thekhanj/ella/ella`
 - **Other platforms:** download from [GitHub releases](https://github.com/thekhanj/ella/releases)
 
@@ -19,7 +19,9 @@ man ella
 
 ## Run ella:
 
+```sh
 ella run [-c ella.json] [starting-services...]
+```
 
 ### Example Config (ella.json):
 ```json
