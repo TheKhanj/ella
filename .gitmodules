@@ -1,0 +1,3 @@
+[submodule "submodules/aur"]
+	path = submodules/aur
+	url = aur@aur.archlinux.org:ella
