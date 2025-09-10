@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+set -e
+
+ellarb="Formula/ella.rb"
+
+make -C ci/homebrew -B
+cp "ci/homebrew/$ellarb" "submodules/homebrew/$ellarb"
+
+cd submodules/homebrew
+git add "$ellarb"
+version="$(
+	cat "$ellarb" |
+		grep -oP "(?<=version \")([^\"]*)"
+)"
+git commit -m "bot: update to version v${version}"
+cd ../..
+
+git add submodules/aur
+git commit -m "bot: update to version v${version}"
+git push
