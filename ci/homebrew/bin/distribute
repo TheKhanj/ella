@@ -17,5 +17,5 @@ git commit -m "bot: update to version v${version}"
 cd ../..
 
 git add submodules/homebrew
-git commit -m "bot: update to version v${version}"
+git commit -m "bot(homebrew): update to version v${version}"
 git push

@@ -16,5 +16,5 @@ git push
 cd ../..
 
 git add submodules/aur
-git commit -m "bot: update to version v${version}"
+git commit -m "bot(aur): update to version v${version}"
 git push
