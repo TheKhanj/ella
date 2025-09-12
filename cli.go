@@ -40,7 +40,7 @@ func (this *Cli) Exec() int {
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Available Commands:")
 		fmt.Fprintln(os.Stderr, "  run       run the daemon")
-		fmt.Fprintln(os.Stderr, "  logs      run the daemon")
+		fmt.Fprintln(os.Stderr, "  logs      show service logs")
 		fmt.Fprintln(os.Stderr, "  start     start services")
 		fmt.Fprintln(os.Stderr, "  stop      stop services")
 		fmt.Fprintln(os.Stderr, "  restart   restart services")
