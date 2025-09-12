@@ -4,7 +4,7 @@
 
 ## Installation
 
-- **Arch Linux (AUR):** available as [`ella`](https://aur.archlinux.org/packages/ella)
+- **Arch Linux (AUR):** available as [`ella`](https://aur.archlinux.org/packages/ella) and [`ella-bin`](https://aur.archlinux.org/packages/ella-bin)
 - **macOS (Homebrew):** `brew install thekhanj/ella/ella`
 - **Other platforms:** download from [GitHub releases](https://github.com/thekhanj/ella/releases)
 
