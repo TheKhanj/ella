@@ -22,10 +22,13 @@ endif
 
 # TODO: not supported yet
 # windows:amd64 windows:arm64
-os-archs=darwin:amd64 darwin:arm64 freebsd:amd64 openbsd:amd64 \
-	linux:amd64 linux:arm:7 linux:arm:5 linux:arm64 \
-	linux:mips64 linux:mips64le linux:mips:softfloat \
-	linux:mipsle:softfloat linux:riscv64 linux:loong64 android:arm64
+os-archs=darwin:amd64 darwin:arm64 \
+	freebsd:amd64 freebsd:386 freebsd:arm64 \
+	openbsd:amd64 openbsd:386 openbsd:arm64 \
+	linux:amd64 linux:386 linux:arm64 linux:arm:7 linux:arm:5 \
+	linux:mips64 linux:mips64le linux:mips:softfloat linux:mipsle:softfloat \
+	linux:riscv64 linux:loong64 \
+	android:arm64
 
 all:
 	@$(foreach n, $(os-archs), \
@@ -43,7 +46,7 @@ all:
 				target_suffix=$${os}_arm; \
 			fi; \
 		elif [ "$${os}" = "linux" ] && ([ "$${arch}" = "mips" ] || [ "$${arch}" = "mipsle" ]) && [ "$${extra}" != "" ] ; then \
-		    flags=GOMIPS=$${extra}; \
+			flags=GOMIPS=$${extra}; \
 		fi; \
 		echo "Build $${os}-$${arch}$${extra:+ ($${extra})}..."; \
 		env GOOS=$${os} GOARCH=$${arch} $${flags} go build -trimpath -ldflags "$(LD_FLAGS)" -o ./release/ella_$${target_suffix} .; \
