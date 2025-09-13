@@ -12,6 +12,7 @@ GO_SRC_FILES = $(shell find . -name '*.go' | grep -v '^./config')
 
 all: ella man $(FSM_PNG_FILES)
 
+.PHONY: clean
 clean:
 	rm ella fsm/*.png config/config.go
 
@@ -39,6 +40,7 @@ config/config: schema.json
 config/%.go: config/%
 	go-jsonschema -p config $< > $@
 
+.PHONY: assert-version
 assert-version:
 	@if ! [ -f .version ] || \
 		[ "$(shell cat .version 2>&1)" != "$(VERSION)" ]; then \
@@ -48,5 +50,3 @@ assert-version:
 # keep this rule's command there, it's mandatory, I don't know why :)
 .version: assert-version
 	@true >/dev/null
-
-.PHONY: assert-version clean
