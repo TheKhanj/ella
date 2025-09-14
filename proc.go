@@ -20,7 +20,7 @@ import (
 
 type CreateProc = func(path string, args ...string) *Proc
 
-//go:generate stringer -type=ProcState
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=ProcState
 type ProcState int
 
 const (

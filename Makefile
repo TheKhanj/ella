@@ -38,7 +38,7 @@ config/config: schema.json
 	cat $< > $@
 
 config/%.go: config/%
-	go-jsonschema -p config $< > $@
+	go run github.com/atombender/go-jsonschema@latest  -p config $< > $@
 
 .PHONY: assert-version
 assert-version:

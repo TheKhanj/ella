@@ -17,7 +17,7 @@ import (
 	"github.com/thekhanj/ella/config"
 )
 
-//go:generate stringer -type=ServiceState
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=ServiceState
 type ServiceState int
 
 const (

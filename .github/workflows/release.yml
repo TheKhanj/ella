@@ -30,24 +30,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod-
-
-      - name: Cache Go bin
-        uses: actions/cache@v4
-        with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gobin-
-
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -58,18 +40,6 @@ jobs:
 
       - name: Install Graphviz
         run: sudo apt-get install -y graphviz
-
-      - name: Install go-jsonschema
-        run: |
-          if ! command -v go-jsonschema >/dev/null; then
-            go install github.com/atombender/go-jsonschema@latest
-          fi
-
-      - name: Install stringer
-        run: |
-          if ! command -v stringer >/dev/null; then
-            go install golang.org/x/tools/cmd/stringer@latest
-          fi
 
       - name: Build packages
         run: ./ci/goreleaser/package.sh

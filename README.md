@@ -8,16 +8,9 @@
 - **macOS (Homebrew):** `brew install thekhanj/ella/ella`
 - **Other platforms:** download from [GitHub releases](https://github.com/thekhanj/ella/releases)
 
-## Build
+## Build And Install
 
-Before building, install the required tools:
-
-```sh
-go install github.com/atombender/go-jsonschema@latest
-go install golang.org/x/tools/cmd/stringer@latest
-```
-
-Then, to build and install:
+Run the following commands:
 
 ```sh
 make
